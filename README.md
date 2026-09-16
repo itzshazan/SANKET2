@@ -89,10 +89,46 @@ SANKET/
 └── README.md
 ```
 
-> **Running the frontend:** `npm install && npm run dev` from `web/` (port 5180).  
-> **Running Module 1 API:** `python -m uvicorn module1.api.main:app --reload --port 8000`.
+---
+
+## 🚀 Quick Start: Running Frontend & Backend
+
+### Prerequisites
+- **Python 3.9+** with `pip`
+- **Node.js 18+** with `npm`
 
 ---
+
+### Step 1: Start Backend (Module 1 — ML & Ingestion API)
+
+Open a terminal in the project root directory:
+
+```bash
+python -m uvicorn module1.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+- **Backend Base URL:** [http://localhost:8000](http://localhost:8000)
+- **Interactive Swagger Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check Endpoint:** [http://localhost:8000/api/v1/module1/health](http://localhost:8000/api/v1/module1/health)
+
+---
+
+### Step 2: Start Frontend (React + Vite Web Client)
+
+Open a second terminal, navigate to the `web/` folder, and launch the Vite dev server:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+- **Web Dashboard URL:** [http://localhost:5180](http://localhost:5180) (or `http://localhost:5173`)
+
+> **Note:** The frontend has automatic fallback handling. It will seamlessly connect to the live ML backend when running, and gracefully fall back to local simulations if the backend is offline.
+
+---
+
 
 ## 1. The 60-second pitch
 

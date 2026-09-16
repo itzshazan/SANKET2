@@ -1,0 +1,73 @@
+# SANKET Module 1 — Landslide Risk Prediction Configuration
+
+project:
+  name: "sanket-module1"
+  version: "1.0.0"
+  description: "Tabular Machine Learning Landslide Early Warning for India (Himalayas, Western Ghats, NER)"
+
+region:
+  name: "Pan-India Landslide Susceptible Belts"
+  states: ["AR", "AS", "MN", "ML", "MZ", "NL", "SK", "TR", "UK", "HP", "JK", "KL", "MH", "KA", "TN", "GA", "WB"]
+  bbox:
+    min_lat: 6.5
+    max_lat: 37.5
+    min_lon: 68.0
+    max_lon: 97.5
+
+data:
+  raw_dir: "module1/data/raw"
+  processed_dir: "module1/data/processed"
+  final_dir: "module1/data/final"
+  landslide_source: "ISRO Landslide Atlas + GSI NLSM"
+  rainfall_source: "NASA GPM IMERG + IMD"
+  soil_moisture_source: "NASA SMAP"
+  dem_source: "Copernicus DEM 30m"
+  satellite_source: "Sentinel-2 L2A"
+
+features:
+  numerical:
+    - "rainfall_24h"
+    - "rainfall_72h"
+    - "rainfall_7d"
+    - "max_rainfall_1h"
+    - "rainfall_exceedance"
+    - "soil_moisture"
+    - "elevation"
+    - "slope"
+    - "aspect"
+    - "curvature"
+    - "twi"
+    - "flow_accumulation"
+    - "ndvi"
+    - "ndvi_change"
+    - "historical_density"
+  target: "target"
+
+thresholds:
+  regional_power_law:
+    alpha: 5.8294
+    beta: -0.4141
+  risk_levels:
+    normal: 0.00
+    watch: 0.35
+    warning: 0.60
+    danger: 0.80
+  hysteresis_buffer: 0.05
+
+training:
+  test_size: 0.2
+  val_size: 0.15
+  random_state: 42
+  cv_splits: 5
+  xgboost:
+    n_estimators: 250
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    scale_pos_weight: 3.0
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true

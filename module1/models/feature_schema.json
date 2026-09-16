@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SANKET Module 1 Feature Schema",
+  "description": "Input feature definitions and constraints for landslide risk prediction in NER",
+  "version": "1.0.0",
+  "model_type": "XGBoost",
+  "required": [
+    "rainfall_24h",
+    "rainfall_72h",
+    "rainfall_7d",
+    "soil_moisture",
+    "elevation",
+    "slope",
+    "aspect",
+    "curvature",
+    "twi",
+    "ndvi",
+    "ndvi_change",
+    "historical_density"
+  ],
+  "properties": {
+    "rainfall_24h": { "type": "number", "minimum": 0.0, "maximum": 600.0, "unit": "mm" },
+    "rainfall_72h": { "type": "number", "minimum": 0.0, "maximum": 1500.0, "unit": "mm" },
+    "rainfall_7d": { "type": "number", "minimum": 0.0, "maximum": 2500.0, "unit": "mm" },
+    "max_rainfall_1h": { "type": "number", "minimum": 0.0, "maximum": 150.0, "unit": "mm/h" },
+    "rainfall_exceedance": { "type": "number", "minimum": 0.0, "maximum": 10.0, "description": "I / I_0(D)" },
+    "soil_moisture": { "type": "number", "minimum": 0.0, "maximum": 0.60, "unit": "m3/m3" },
+    "elevation": { "type": "number", "minimum": 50.0, "maximum": 7500.0, "unit": "m" },
+    "slope": { "type": "number", "minimum": 0.0, "maximum": 85.0, "unit": "degrees" },
+    "aspect": { "type": "number", "minimum": 0.0, "maximum": 360.0, "unit": "degrees" },
+    "curvature": { "type": "number", "minimum": -10.0, "maximum": 10.0 },
+    "twi": { "type": "number", "minimum": 1.0, "maximum": 25.0, "description": "Topographic Wetness Index" },
+    "flow_accumulation": { "type": "number", "minimum": 0.0, "maximum": 100000.0 },
+    "ndvi": { "type": "number", "minimum": -0.2, "maximum": 1.0 },
+    "ndvi_change": { "type": "number", "minimum": -1.0, "maximum": 1.0 },
+    "historical_density": { "type": "integer", "minimum": 0, "maximum": 50 }
+  }
+}

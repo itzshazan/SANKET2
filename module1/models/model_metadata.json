@@ -1,0 +1,82 @@
+{
+  "model_name": "xgboost_gpu",
+  "version": "1.0.0",
+  "trained_date": "2026-09-06T08:51:21.029047",
+  "metrics": {
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1": 0.995
+  },
+  "features": [
+    "rainfall_24h",
+    "rainfall_72h",
+    "rainfall_7d",
+    "soil_moisture",
+    "elevation",
+    "slope",
+    "twi",
+    "ndvi",
+    "ndvi_change",
+    "historical_landslide_count"
+  ],
+  "risk_thresholds": {
+    "NORMAL": [
+      0.0,
+      0.35
+    ],
+    "WATCH": [
+      0.35,
+      0.6
+    ],
+    "WARNING": [
+      0.6,
+      0.8
+    ],
+    "DANGER": [
+      0.8,
+      1.0
+    ]
+  },
+  "shap_importance": [
+    {
+      "Feature": "soil_moisture",
+      "Mean_SHAP_Impact": 3.483898162841797
+    },
+    {
+      "Feature": "rainfall_7d",
+      "Mean_SHAP_Impact": 1.8540887832641602
+    },
+    {
+      "Feature": "rainfall_72h",
+      "Mean_SHAP_Impact": 0.5142770409584045
+    },
+    {
+      "Feature": "ndvi_change",
+      "Mean_SHAP_Impact": 0.4223978519439697
+    },
+    {
+      "Feature": "slope",
+      "Mean_SHAP_Impact": 0.17768485844135284
+    },
+    {
+      "Feature": "rainfall_24h",
+      "Mean_SHAP_Impact": 0.12149152159690857
+    },
+    {
+      "Feature": "historical_landslide_count",
+      "Mean_SHAP_Impact": 0.00519016245380044
+    },
+    {
+      "Feature": "elevation",
+      "Mean_SHAP_Impact": 0.0
+    },
+    {
+      "Feature": "ndvi",
+      "Mean_SHAP_Impact": 0.0
+    },
+    {
+      "Feature": "twi",
+      "Mean_SHAP_Impact": 0.0
+    }
+  ]
+}

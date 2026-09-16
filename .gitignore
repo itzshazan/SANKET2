@@ -69,6 +69,17 @@ temp_*/
 # Local Analysis & Knowledge Graph Artifacts
 graphify-out/
 
+# Decks, Docs, Design & Notebooks
+notebooks/
+deck/
+docs/
+CLAUDE.md
+SANKET_*.md
+api.md
+flow.md
+frontentdesign.md
+/package-lock.json
+
 # Data & Ingestion Caches (ignore cached responses, preserve directory structure)
 module1/data/cache/*
 !module1/data/cache/.gitkeep

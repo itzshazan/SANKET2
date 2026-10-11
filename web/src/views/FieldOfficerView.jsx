@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { module1Api } from '../services/module1Api.js';
 import { REPORT_TYPES, VILLAGES } from '../data/mockData.js';
 import { IconCamera, IconUpload, IconWifiOff, IconMapPin, IconCheckCircle, IconRefresh } from '../components/icons.jsx';
 
@@ -20,7 +21,25 @@ export default function FieldOfficerView() {
   const [gps, setGps] = useState(null);
   const [queue, setQueue] = useState([]); // pending-sync reports while offline
   const [submitted, setSubmitted] = useState([]); // synced report cards
-  const nextId = useRef(25);
+  const nextId = useRef(1);
+  const [notice, setNotice] = useState('');
+
+  // Reports are persisted by the backend (SQLite), so they survive a reload and
+  // are visible to the district officer's Alert Center.
+  useEffect(() => {
+    let alive = true;
+    module1Api.listFieldReports().then((rows) => {
+      if (alive && Array.isArray(rows)) {
+        setSubmitted(rows.map((r) => ({ ...r, photoUrl: r.has_photo ? 'attached' : null, submittedAt: r.submitted_at })));
+      }
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const toPayload = (r) => ({
+    location: r.location, type: r.type, description: r.description || '',
+    gps: r.gps, has_photo: !!r.photoUrl, submitted_at: r.submittedAt,
+  });
   const fileRef = useRef(null);
 
   function generateGpsString() {
@@ -39,7 +58,7 @@ export default function FieldOfficerView() {
     if (file) setPhotoUrl(URL.createObjectURL(file));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     // Compute locally rather than reading `gps` state, which would still hold
     // its pre-update value inside this same handler (React state updates are
     // async) if the officer never pressed "Capture GPS" first.
@@ -54,16 +73,31 @@ export default function FieldOfficerView() {
     if (offlineMode) {
       setQueue((q) => [...q, report]);
     } else {
-      setSubmitted((s) => [{ ...report, status: 'Submitted' }, ...s]);
+      const saved = await module1Api.submitFieldReport(toPayload(report));
+      if (saved) {
+        setSubmitted((s) => [{ ...report, ...saved, photoUrl: report.photoUrl, submittedAt: saved.submitted_at }, ...s]);
+        setNotice('');
+      } else {
+        setQueue((q) => [...q, report]);
+        setNotice('Server unreachable — report saved locally. Press Sync when the connection returns.');
+      }
     }
     setDescription('');
     setPhotoUrl(null);
     setGps(null);
   }
 
-  function handleSync() {
-    setSubmitted((s) => [...queue.map((r) => ({ ...r, status: 'Submitted' })).reverse(), ...s]);
-    setQueue([]);
+  async function handleSync() {
+    const failed = [];
+    const synced = [];
+    for (const r of queue) {
+      const saved = await module1Api.submitFieldReport(toPayload(r));
+      if (saved) synced.push({ ...r, ...saved, photoUrl: r.photoUrl, submittedAt: saved.submitted_at });
+      else failed.push(r);
+    }
+    setSubmitted((s) => [...synced.reverse(), ...s]);
+    setQueue(failed);
+    setNotice(failed.length ? `${failed.length} report(s) could not be synced — server unreachable.` : '');
   }
 
   return (
@@ -148,6 +182,9 @@ export default function FieldOfficerView() {
 
       {/* Report cards / queue */}
       <div style={{ width: 320, flex: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {notice && (
+          <div className="card" style={{ borderColor: 'var(--hazard-watch)', fontSize: 12, color: 'var(--hazard-watch)' }}>{notice}</div>
+        )}
         {queue.length > 0 && (
           <div className="card" style={{ borderColor: 'var(--hazard-watch)' }}>
             <div className="section-label" style={{ color: 'var(--hazard-watch)' }}>Pending Sync ({queue.length})</div>

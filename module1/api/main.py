@@ -9,6 +9,7 @@ load_dotenv(dotenv_path=_ENV_PATH, override=True)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import router
+from .records import router as records_router
 
 app = FastAPI(
     title="SANKET Module 1 — Landslide Risk Prediction API",
@@ -25,12 +26,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # the API uses no cookies; "*" + credentials is rejected by browsers
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(router)
+app.include_router(records_router)
 
 
 @app.get("/", tags=["Root"])

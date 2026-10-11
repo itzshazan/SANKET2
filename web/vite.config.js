@@ -7,4 +7,17 @@ export default defineConfig({
     port: 5180,
     host: true,
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // Keep the heavy libraries in their own cacheable chunks.
+        manualChunks: {
+          leaflet: ['leaflet'],
+          charts: ['recharts'],
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 });

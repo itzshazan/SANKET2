@@ -251,7 +251,7 @@ export default function Dashboard({ selection, selectState, selectDistrict, sele
           label="ACTIVE RISK ZONES" 
           value={loadingSummary && !summary ? "..." : String(summary?.active_risk_zones || 12).padStart(2, '0')} 
           tone="danger" 
-          sub={summary?.active_risk_zones_breakdown || "6 High Himalayas · 4 Western Ghats · 5 NER"}
+          sub={`${summary?.active_risk_zones_breakdown || "6 High Himalayas · 4 Western Ghats · 5 NER"}${summary?.is_fallback ? ' · offline reference data' : ''}`}
         />
         <KpiCard 
           label="AVG RAINFALL" 

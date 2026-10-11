@@ -1,13 +1,14 @@
 import React from 'react';
 import { IconChevronRight } from './icons.jsx';
-import { ALERT_LANGUAGES, NAV_ROLE_ACCESS } from '../data/mockData.js';
+import { ALERT_LANGUAGES } from '../data/mockData.js';
+import { canAccess } from '../routes.js';
 import GlobalSearch from './GlobalSearch.jsx';
 
 export default function TopBar({ title, crumbs, role, onRoleChange, language, onLanguageChange, onSearchSelectDistrict, onMenuClick, theme, onToggleTheme }) {
   // Search navigates to Risk Monitoring — only offer it to a role that can
-  // actually reach that view (matches Sidebar's own NAV_ROLE_ACCESS check),
+  // actually reach that view (matches the Sidebar's own route access check),
   // rather than hand-carving a "field_officer" special case here.
-  const canSearch = (NAV_ROLE_ACCESS.monitor || NAV_ROLE_ACCESS.monitoring || []).includes(role);
+  const canSearch = canAccess('monitor', role);
   return (
     <header className="topbar">
       <div className="topbar-left">

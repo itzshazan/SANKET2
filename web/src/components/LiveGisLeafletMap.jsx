@@ -212,7 +212,7 @@ export default function LiveGisLeafletMap({
                 : ''
             }
             <div style="font-size: 9.5px; color: var(--text-dim); text-align: right;">
-              Live Satellite ML Ingestion
+              Open-Meteo live weather + DEM · ML risk model
             </div>
           </div>
         `;

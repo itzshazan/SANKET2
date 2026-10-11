@@ -1,33 +1,28 @@
 import React from 'react';
-import { NAV_ITEMS, NAV_ROLE_ACCESS, ROLES } from '../data/mockData.js';
+import { ROLES } from '../data/mockData.js';
+import { NAV_ITEMS, canAccess } from '../routes.js';
 import { 
-  IconGrid, IconMap, IconMonitor, IconCamera, IconBell, 
-  IconList, IconHistory, IconUser, IconLock, IconBarChart, 
+  IconGrid, IconMap, IconMonitor, IconBell, 
+  IconHistory, IconUser, IconLock, IconBarChart, 
   IconBuilding, IconFileText, IconInfo, IconActivity, IconGlobe
 } from './icons.jsx';
 
 const ICONS = {
   overview: IconGrid,
-  dashboard: IconGrid,
   monitor: IconMonitor,
-  monitoring: IconMonitor,
   'risk-map': IconMap,
-  'gis-map': IconMap,
   'tactical-3d': IconGlobe,
   analytics: IconBarChart,
   history: IconHistory,
-  backtesting: IconHistory,
   infra: IconBuilding,
-  priorities: IconList,
   alerts: IconBell,
   reports: IconFileText,
-  'field-reports': IconCamera,
   settings: IconActivity,
   help: IconInfo,
 };
 
 export default function Sidebar({ view, onNavigate, role, onFieldView, open, onClose }) {
-  const allowed = (navId) => (NAV_ROLE_ACCESS[navId] || []).includes(role);
+  const allowed = (navId) => canAccess(navId, role);
 
   // On mobile the sidebar is an overlay drawer (see the @media block in
   // index.css) — picking a destination should also close it, otherwise it

@@ -1,9 +1,10 @@
 """FastAPI Route Handlers for Module 1."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional, List
 
 _cache_lock = threading.Lock()
@@ -18,9 +19,9 @@ from .schemas import (
     HealthResponse,
 )
 from ..inference.predictor import LandslidePredictor
-from ..explainability.shap import TreeShapExplainer
+from ..explainability.shap import GroupShapleyExplainer
 from ..evaluation.backtesting import HistoricalEventBacktester
-from ..ingestion.realtime_api import realtime_service
+from ..ingestion.realtime_api import realtime_service, is_offline_mode
 from ..ingestion.osm import osm_service
 
 router = APIRouter(prefix="/api/v1/module1", tags=["Module 1: Landslide Risk Prediction"])
@@ -30,7 +31,7 @@ MODEL_PATH = MODELS_DIR / "module1_model.pkl"
 
 # Initialize predictor and explainer
 predictor = LandslidePredictor(model_path=MODEL_PATH)
-explainer = TreeShapExplainer(model=predictor.model)
+explainer = GroupShapleyExplainer(model=predictor.model)
 
 backtester = HistoricalEventBacktester()
 
@@ -105,7 +106,7 @@ def get_environment_telemetry(
         "risk_level": level,
         "risk_score": int(round(prob * 100)),
         "telemetry": telemetry,
-        "evaluated_at": datetime.utcnow().isoformat() + "Z",
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -150,9 +151,9 @@ def get_dashboard_summary():
         "areas_monitored": len(hub_results),
         "critical_alerts_count": critical_alerts,
         "hubs": hub_results,
-        "is_live": True,
+        "is_live": dist_data.get("is_live", False),
         "cached": dist_data.get("cached", False),
-        "updated_at": dist_data.get("updated_at", datetime.utcnow().isoformat() + "Z"),
+        "updated_at": dist_data.get("updated_at", datetime.now(timezone.utc).isoformat()),
     }
 
 
@@ -195,8 +196,8 @@ def predict_risk(request: PredictionRequest):
     return PredictionResponse(
         risk_probability=prob,
         risk_level=level,
-        evaluated_at=datetime.utcnow().isoformat() + "Z",
-        model_version="1.0.0-xgb",
+        evaluated_at=datetime.now(timezone.utc).isoformat(),
+        model_version="1.1.0-hgb",
         zone_id=request.zone_id,
         is_mock=False,
         location={
@@ -228,7 +229,7 @@ def explain_risk(request: PredictionRequest, zone_id: Optional[str] = Query(None
         zone_id=zone_id or request.zone_id,
         risk_level=level,
         risk_probability=prob,
-        method="TreeSHAP",
+        method=explainer.METHOD,
         factors=factors,
     )
 
@@ -238,13 +239,17 @@ def batch_predict(request: BatchPredictionRequest):
     """Batch prediction over a list of coordinate/telemetry samples."""
     results = []
     for inst in request.instances:
-        prob, level = predictor.predict(inst.dict())
+        # Same enrichment as /predict: auto-fetch telemetry, let explicit values win, and drop
+        # None values (a None in the feature vector crashed the model with a 500).
+        live_env = realtime_service.fetch_live_environmental_telemetry(lat=inst.latitude, lon=inst.longitude)
+        merged = {**live_env, **inst.dict(exclude_none=True)}
+        prob, level = predictor.predict(merged)
         results.append(
             PredictionResponse(
                 risk_probability=prob,
                 risk_level=level,
-                evaluated_at=datetime.utcnow().isoformat() + "Z",
-                model_version="1.0.0-xgb",
+                evaluated_at=datetime.now(timezone.utc).isoformat(),
+                model_version="1.1.0-hgb",
                 zone_id=inst.zone_id,
                 is_mock=False,
             )
@@ -303,9 +308,7 @@ def get_districts_live():
         if _districts_live_cache and (now - _districts_live_cache_ts) < DISTRICTS_CACHE_TTL:
             return {**_districts_live_cache, "cached": True}
 
-        districts_result: Dict[str, Any] = {}
-
-        for dist in ALL_MONITORED_DISTRICTS:
+        def _assess(dist: Dict[str, Any]):
             try:
                 env = realtime_service.fetch_live_environmental_telemetry(
                     lat=dist["lat"],
@@ -313,8 +316,7 @@ def get_districts_live():
                     district_name=dist["name"],
                 )
                 prob, level = predictor.predict(env)
-
-                districts_result[dist["id"]] = {
+                return dist["id"], {
                     "name": dist["name"],
                     "state": dist["state"],
                     "lat": dist["lat"],
@@ -334,15 +336,22 @@ def get_districts_live():
                     "data_source": env.get("data_source", "hybrid_realtime"),
                 }
             except Exception:
-                pass
+                return dist["id"], None
+
+        # The districts are independent network-bound lookups; running them one by one took
+        # 1-2 minutes cold (longer than the frontend timeout), so fan them out.
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            districts_result: Dict[str, Any] = {
+                did: item for did, item in pool.map(_assess, ALL_MONITORED_DISTRICTS) if item
+            }
 
         result = {
             "districts": districts_result,
             "count": len(districts_result),
             "cache_ttl_seconds": DISTRICTS_CACHE_TTL,
-            "is_live": True,
+            "is_live": not is_offline_mode(),
             "cached": False,
-            "updated_at": datetime.utcnow().isoformat() + "Z",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         _districts_live_cache = result

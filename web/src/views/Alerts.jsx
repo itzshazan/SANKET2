@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { module1Api } from '../services/module1Api.js';
 import HazardBadge from '../components/HazardBadge.jsx';
 import { ALERTS, ALERT_AUDIENCES, ALERT_LANGUAGES, ALERT_TEMPLATES, ZONES, DISTRICTS } from '../data/mockData.js';
 import { IconBell, IconMap, IconInfo, IconActivity, IconAlertTriangle } from '../components/icons.jsx';
@@ -92,12 +93,39 @@ export default function Alerts({ role, goTo }) {
     return INCIDENTS_DATA;
   });
 
+  const incidentsRef = React.useRef(incidents);
+  incidentsRef.current = incidents;
+
   // Persist incidents whenever updated
   useEffect(() => {
     try {
       localStorage.setItem('sanket_incidents_v1', JSON.stringify(incidents));
     } catch {}
   }, [incidents]);
+
+  // Incidents are persisted in the backend (SQLite). localStorage above is only the
+  // instant-load cache / offline fallback. First run seeds the backend with the defaults.
+  const [storeOnline, setStoreOnline] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    module1Api.listIncidents().then(async (rows) => {
+      if (!alive || !Array.isArray(rows)) return;
+      setStoreOnline(true);
+      if (rows.length > 0) setIncidents(rows);
+      else await Promise.all(incidentsRef.current.map((i) => module1Api.saveIncident(i)));
+    });
+    return () => { alive = false; };
+  }, []);
+
+  // Field reports submitted by field officers (shared through the backend).
+  const [fieldReports, setFieldReports] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () => module1Api.listFieldReports().then((rows) => { if (alive && Array.isArray(rows)) setFieldReports(rows); });
+    load();
+    const t = setInterval(load, 30000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
 
   const [showDispatchModal, setShowDispatchModal] = useState(false);
 
@@ -116,12 +144,14 @@ export default function Alerts({ role, goTo }) {
   }, [incidents, severityFilter, statusFilter]);
 
   function handleAcknowledge(id) {
+    module1Api.patchIncident(id, { status: 'monitoring', statusLabel: 'Acknowledged · Monitoring' });
     setIncidents((prev) =>
       prev.map((inc) => (inc.id === id ? { ...inc, status: 'monitoring', statusLabel: 'Acknowledged · Monitoring' } : inc))
     );
   }
 
   function handleResolve(id) {
+    module1Api.patchIncident(id, { status: 'resolved', statusLabel: 'Resolved' });
     setIncidents((prev) =>
       prev.map((inc) => (inc.id === id ? { ...inc, status: 'resolved', statusLabel: 'Resolved' } : inc))
     );
@@ -139,13 +169,15 @@ export default function Alerts({ role, goTo }) {
       timeAgo: 'JUST NOW',
       title: newTitle.trim(),
       location: newLocation.trim(),
-      districtId: 'wayanad',
+      // Link the incident to the district named in the location (was hard-coded to Wayanad).
+      districtId: Object.values(DISTRICTS).flat().find((d) => newLocation.toLowerCase().includes(d.name.toLowerCase()))?.id || 'wayanad',
       factors: newFactors.trim() || 'Extreme Rainfall + Soil Saturation',
       summary: 'Emergency alert dispatched to district emergency operations and field responders.',
       status: 'active',
       statusLabel: 'Active Incident',
       recipients: 350,
     };
+    module1Api.saveIncident(newInc);
     setIncidents([newInc, ...incidents]);
     setShowDispatchModal(false);
   }
@@ -391,6 +423,33 @@ export default function Alerts({ role, goTo }) {
             })
           )}
         </div>
+      </div>
+
+      {/* FIELD REPORTS FROM THE GROUND */}
+      <div className="card">
+        <div className="card-head">
+          <div className="card-title">Field Reports ({fieldReports.length})</div>
+          <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>
+            {storeOnline ? 'Live from field officers · refreshes every 30s' : 'Backend offline — start the API to see field reports'}
+          </span>
+        </div>
+        {fieldReports.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: 'var(--text-dim)', padding: '8px 0' }}>
+            No field reports yet. Switch to the Field Officer view and submit one.
+          </div>
+        ) : (
+          fieldReports.slice(0, 8).map((r) => (
+            <div key={r.id} style={{ fontSize: 12.5, padding: '8px 0', borderTop: '1px solid var(--border-muted)', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div>
+                <b>#{r.id}</b> · {r.type} · {r.location}
+                {r.description && <div style={{ color: 'var(--text-muted)' }}>{r.description}</div>}
+              </div>
+              <div style={{ color: 'var(--text-dim)', fontSize: 11 }}>
+                {r.gps || 'no GPS'} · {new Date(r.submitted_at).toLocaleString()}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* DISPATCH MODAL */}

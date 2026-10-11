@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { TACTICAL_KEYS } from '../config/keys.js';
 import { TACTICAL_SHADERS } from './tactical/shaders/index.js';
-import { loadPhotorealisticTileset } from './tactical/mapStartup.js';
 import { module1Api } from '../services/module1Api.js';
 import { PAN_INDIA_SPATIAL_NODES } from '../components/LiveGisLeafletMap.jsx';
 import './tactical/Tactical3DGlobe.css';
@@ -96,7 +94,7 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
   const [activePreset, setActivePreset] = useState('pan-india');
   const [activeSensor, setActiveSensor] = useState('normal'); // normal, thermal, surveillance, retro, noir, snow, anime
   const [thermalMode, setThermalMode] = useState('ironbow'); // ironbow, whot, bhot
-  const [mapSource, setMapSource] = useState('Detecting Photoreal 3D Tiles...');
+  const [mapSource, setMapSource] = useState('Loading free satellite imagery...');
   const [telemetry, setTelemetry] = useState({
     lat: '22.5000° N',
     lon: '82.0000° E',
@@ -177,9 +175,9 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
 
       const Cesium = window.Cesium;
 
-      // Pass user credentials from TACTICAL_KEYS
-      Cesium.Ion.defaultAccessToken = TACTICAL_KEYS.CESIUM_ION_TOKEN;
-      Cesium.GoogleMaps.defaultApiKey = TACTICAL_KEYS.GOOGLE_MAPS_3D_KEY;
+      // Free, keyless stack: no Cesium ion token and no Google Maps key are needed.
+      // Imagery comes from Esri World Imagery (OpenStreetMap as fallback) on the
+      // default ellipsoid terrain.
 
       if (!containerRef.current) return;
 
@@ -216,64 +214,28 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
           viewer.scene.skyAtmosphere.brightnessShift = -0.08;
         }
 
-        // 1. Attempt loading Google Photorealistic 3D Tiles
-        let photorealTileset = null;
+        // 1. Base imagery (free, no API key)
+        viewer.scene.globe.show = true;
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+        viewer.scene.globe.enableLighting = true;
+
+        let imageryProvider = null;
         try {
-          const photorealResult = await loadPhotorealisticTileset(Cesium, {
-            googleApiKey: TACTICAL_KEYS.GOOGLE_MAPS_3D_KEY,
-            cesiumToken: TACTICAL_KEYS.CESIUM_ION_TOKEN,
+          imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
+            { enablePickFeatures: false }
+          );
+          setMapSource('Esri World Satellite Imagery (free, keyless)');
+        } catch (arcErr) {
+          console.warn('Esri imagery unavailable, falling back to OpenStreetMap:', arcErr);
+          imageryProvider = new Cesium.OpenStreetMapImageryProvider({
+            url: 'https://tile.openstreetmap.org/',
           });
-          photorealTileset = photorealResult.tileset;
-        } catch (e) {
-          console.warn('Photoreal tileset load attempt:', e);
+          setMapSource('OpenStreetMap Global Baseline');
         }
 
-        if (photorealTileset) {
-          viewer.scene.primitives.add(photorealTileset);
-          viewer.scene.globe.show = false;
-          setMapSource('Google Photorealistic 3D Tiles (Direct Mesh)');
-        } else {
-          // Fallback stack: Esri High-Res World Imagery + Cesium World Terrain
-          viewer.scene.globe.show = true;
-          viewer.scene.globe.depthTestAgainstTerrain = true;
-          viewer.scene.globe.enableLighting = true;
-
-          try {
-            const terrain = await Cesium.createWorldTerrainAsync({
-              requestWaterMask: true,
-              requestVertexNormals: true,
-            });
-            viewer.scene.terrainProvider = terrain;
-          } catch (tErr) {
-            console.warn('Terrain provider fallback:', tErr);
-          }
-
-          let imageryProvider = null;
-          try {
-            imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
-              'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
-              { enablePickFeatures: false }
-            );
-            setMapSource('Esri World Satellite Imagery + Cesium 3D World Terrain');
-          } catch (arcErr) {
-            console.warn('ArcGis fromUrl failed, trying createWorldImageryAsync:', arcErr);
-            try {
-              imageryProvider = await Cesium.createWorldImageryAsync({
-                style: Cesium.IonWorldImageryStyle.AERIAL_WITH_LABELS,
-              });
-              setMapSource('Cesium Ion World Aerial Imagery');
-            } catch (ionErr) {
-              console.warn('Cesium Ion imagery fallback:', ionErr);
-              imageryProvider = new Cesium.OpenStreetMapImageryProvider({
-                url: 'https://tile.openstreetmap.org/',
-              });
-              setMapSource('OpenStreetMap Global Baseline');
-            }
-          }
-
-          if (imageryProvider && !viewer.isDestroyed()) {
-            viewer.scene.imageryLayers.addImageryProvider(imageryProvider);
-          }
+        if (imageryProvider && !viewer.isDestroyed()) {
+          viewer.scene.imageryLayers.addImageryProvider(imageryProvider);
         }
 
         // 2. Initialize God's Eye View GLSL Post-Process Stages

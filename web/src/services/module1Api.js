@@ -3,7 +3,53 @@
 // Provides transparent fallback to mockData when backend server is offline.
 
 import apiClient from './apiClient.js';
-import { getZone, getDistrict } from '../data/mockData.js';
+import { getZone, getDistrict, DISTRICTS } from '../data/mockData.js';
+
+const ALL_MOCK_DISTRICTS = Object.values(DISTRICTS).flat();
+const LEVEL_PROB = { danger: 0.88, warning: 0.68, watch: 0.45, normal: 0.12 };
+
+// Reference summary derived from the bundled mock districts (flagged is_fallback).
+function mockSummary() {
+  const risky = ALL_MOCK_DISTRICTS.filter((d) => d.hazard === 'danger' || d.hazard === 'warning');
+  const byState = (ids) => risky.filter((d) => ids.includes(d.state)).length;
+  const rain = ALL_MOCK_DISTRICTS.map((d) => d.environment?.rainfall?.h24).filter((v) => typeof v === 'number');
+  return {
+    active_risk_zones: risky.length,
+    active_risk_zones_breakdown: `${byState(['UK', 'HP', 'JK'])} High Himalayas · ${byState(['KL', 'MH', 'TN'])} Western Ghats · ${risky.length - byState(['UK', 'HP', 'JK', 'KL', 'MH', 'TN'])} NER`,
+    avg_rainfall_24h: rain.length ? Math.round((rain.reduce((a, b) => a + b, 0) / rain.length) * 10) / 10 : 0,
+    areas_monitored: ALL_MOCK_DISTRICTS.length,
+    critical_alerts_count: ALL_MOCK_DISTRICTS.filter((d) => d.hazard === 'danger').length,
+    updated_at: new Date().toISOString(),
+    is_fallback: true,
+  };
+}
+
+// Reference telemetry for a point: nearest bundled district by name, else a neutral default.
+function mockEnvironment(lat, lon, district) {
+  const d = ALL_MOCK_DISTRICTS.find((x) => x.name.toLowerCase() === String(district || '').toLowerCase());
+  const rf = d?.environment?.rainfall;
+  const level = d?.hazard || 'watch';
+  return {
+    latitude: lat,
+    longitude: lon,
+    district,
+    risk_probability: LEVEL_PROB[level],
+    risk_level: level,
+    risk_score: Math.round(LEVEL_PROB[level] * 100),
+    telemetry: {
+      rainfall_24h: rf?.h24 ?? 38.5,
+      rainfall_72h: rf?.h72 ?? 74.2,
+      rainfall_7d: rf?.d7 ?? 112.0,
+      soil_moisture: d?.environment?.soilMoisture?.level === 'SATURATED' ? 0.45 : 0.32,
+      temperature: 24.5,
+      wind_speed: 12.0,
+      elevation: 1250,
+      slope: 28.5,
+      historical_landslide_count: d?.historicalLandslideCount ?? 12,
+    },
+    is_fallback: true,
+  };
+}
 
 export const module1Api = {
   /**
@@ -33,17 +79,9 @@ export const module1Api = {
    */
   async getDashboardSummary() {
     try {
-      return await apiClient.get('/api/v1/module1/dashboard-summary', { timeoutMs: 5000 });
+      return await apiClient.get('/api/v1/module1/dashboard-summary', { timeoutMs: 20000 });
     } catch {
-      return {
-        active_risk_zones: 12,
-        active_risk_zones_breakdown: '4 Kedarnath/Chamoli · 3 Wayanad · 5 NER',
-        avg_rainfall_24h: 42.8,
-        areas_monitored: 248,
-        critical_alerts_count: 3,
-        updated_at: new Date().toISOString(),
-        is_fallback: true,
-      };
+      return mockSummary();
     }
   },
 
@@ -55,24 +93,7 @@ export const module1Api = {
       const q = district ? `?lat=${lat}&lon=${lon}&district=${encodeURIComponent(district)}` : `?lat=${lat}&lon=${lon}`;
       return await apiClient.get(`/api/v1/module1/environment${q}`, { timeoutMs: 4000 });
     } catch {
-      return {
-        latitude: lat,
-        longitude: lon,
-        risk_probability: 0.72,
-        risk_level: 'warning',
-        risk_score: 72,
-        telemetry: {
-          rainfall_24h: 38.5,
-          rainfall_72h: 74.2,
-          rainfall_7d: 112.0,
-          soil_moisture: 0.38,
-          temperature: 26.4,
-          wind_speed: 13.5,
-          elevation: 1250,
-          slope: 28.5,
-        },
-        is_fallback: true,
-      };
+      return mockEnvironment(lat, lon, district);
     }
   },
 
@@ -184,9 +205,42 @@ export const module1Api = {
         force_refresh: forceRefresh ? 'true' : 'false',
       });
       if (district) p.append('district', district);
-      return await apiClient.get(`/api/v1/module1/infrastructure?${p.toString()}`, { timeoutMs: 6000 });
+      return await apiClient.get(`/api/v1/module1/infrastructure?${p.toString()}`, { timeoutMs: 25000 });
     } catch (err) {
       console.warn('OSM Infrastructure fetch failed, using fallback:', err);
+      return null;
+    }
+  },
+
+  /** Persistent field reports (SQLite). All return null on failure so callers can queue/fallback. */
+  async listFieldReports() {
+    try { return await apiClient.get('/api/v1/module1/field-reports', { timeoutMs: 5000 }); } catch { return null; }
+  },
+  async submitFieldReport(report) {
+    try { return await apiClient.post('/api/v1/module1/field-reports', report, { timeoutMs: 8000 }); } catch { return null; }
+  },
+
+  /** Persistent incidents (alert center). */
+  async listIncidents() {
+    try { return await apiClient.get('/api/v1/module1/incidents', { timeoutMs: 5000 }); } catch { return null; }
+  },
+  async saveIncident(incident) {
+    try { return await apiClient.post('/api/v1/module1/incidents', incident, { timeoutMs: 5000 }); } catch { return null; }
+  },
+  async patchIncident(id, changes) {
+    try {
+      return await apiClient.request(`/api/v1/module1/incidents/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(changes), timeoutMs: 5000 });
+    } catch { return null; }
+  },
+
+  /**
+   * Replay the 29 June 2022 Tupul (Noney) disaster through the real model.
+   * Returns null if the backend is unreachable (the view keeps its reference timeline).
+   */
+  async getNoneyBacktest() {
+    try {
+      return await apiClient.get('/api/v1/module1/backtest/noney-2022', { timeoutMs: 8000 });
+    } catch {
       return null;
     }
   },
@@ -196,7 +250,7 @@ export const module1Api = {
    */
   async getDistrictsLive() {
     try {
-      return await apiClient.get('/api/v1/module1/districts-live', { timeoutMs: 15000 });
+      return await apiClient.get('/api/v1/module1/districts-live', { timeoutMs: 25000 });
     } catch (err) {
       console.warn('Live districts fetch failed:', err);
       return null;

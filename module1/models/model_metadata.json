@@ -1,24 +1,49 @@
 {
-  "model_name": "xgboost_gpu",
-  "version": "1.0.0",
-  "trained_date": "2026-09-06T08:51:21.029047",
+  "model_name": "hist_gradient_boosting_baseline",
+  "version": "1.1.0",
+  "trained_date": "2026-10-08T18:27:00.720063Z",
+  "training_data": "synthetic (physically-motivated generator in build_baseline_model.py) - baseline for demo/offline use",
   "metrics": {
-    "roc_auc": 1.0,
-    "pr_auc": 1.0,
-    "f1": 0.995
+    "roc_auc": 0.9671,
+    "pr_auc": 0.9372,
+    "f1": 0.8682,
+    "holdout_samples": 3000,
+    "positive_rate": 0.2161
   },
   "features": [
     "rainfall_24h",
     "rainfall_72h",
     "rainfall_7d",
+    "max_rainfall_1h",
+    "rainfall_exceedance",
     "soil_moisture",
     "elevation",
     "slope",
+    "aspect",
+    "curvature",
     "twi",
+    "flow_accumulation",
     "ndvi",
     "ndvi_change",
-    "historical_landslide_count"
+    "historical_density"
   ],
+  "monotonic_constraints": {
+    "rainfall_24h": 1,
+    "rainfall_72h": 1,
+    "rainfall_7d": 1,
+    "max_rainfall_1h": 1,
+    "rainfall_exceedance": 1,
+    "soil_moisture": 1,
+    "elevation": 0,
+    "slope": 1,
+    "aspect": 0,
+    "curvature": 0,
+    "twi": 0,
+    "flow_accumulation": 0,
+    "ndvi": 0,
+    "ndvi_change": 0,
+    "historical_density": 1
+  },
   "risk_thresholds": {
     "NORMAL": [
       0.0,
@@ -36,47 +61,5 @@
       0.8,
       1.0
     ]
-  },
-  "shap_importance": [
-    {
-      "Feature": "soil_moisture",
-      "Mean_SHAP_Impact": 3.483898162841797
-    },
-    {
-      "Feature": "rainfall_7d",
-      "Mean_SHAP_Impact": 1.8540887832641602
-    },
-    {
-      "Feature": "rainfall_72h",
-      "Mean_SHAP_Impact": 0.5142770409584045
-    },
-    {
-      "Feature": "ndvi_change",
-      "Mean_SHAP_Impact": 0.4223978519439697
-    },
-    {
-      "Feature": "slope",
-      "Mean_SHAP_Impact": 0.17768485844135284
-    },
-    {
-      "Feature": "rainfall_24h",
-      "Mean_SHAP_Impact": 0.12149152159690857
-    },
-    {
-      "Feature": "historical_landslide_count",
-      "Mean_SHAP_Impact": 0.00519016245380044
-    },
-    {
-      "Feature": "elevation",
-      "Mean_SHAP_Impact": 0.0
-    },
-    {
-      "Feature": "ndvi",
-      "Mean_SHAP_Impact": 0.0
-    },
-    {
-      "Feature": "twi",
-      "Mean_SHAP_Impact": 0.0
-    }
-  ]
+  }
 }

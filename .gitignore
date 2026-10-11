@@ -112,3 +112,6 @@ Thumbs.db:encryptable
 *.swo
 *~
 
+
+# Local SQLite store (field reports / incidents)
+module1/data/*.db

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import HazardBadge from '../components/HazardBadge.jsx';
+import DataSourceBadge from '../components/DataSourceBadge.jsx';
+import { module1Api } from '../services/module1Api.js';
 import { 
   IconHistory, IconClock, IconCloudRain, IconDroplet, 
   IconMap, IconMountain, IconAlertTriangle 
@@ -128,7 +130,32 @@ export default function HistoricalBacktesting() {
   const [playing, setPlaying] = useState(false);
   const timerRef = useRef(null);
 
-  const event = HISTORICAL_EVENTS.find((e) => e.id === selectedEventId) || HISTORICAL_EVENTS[0];
+  const baseEvent = HISTORICAL_EVENTS.find((e) => e.id === selectedEventId) || HISTORICAL_EVENTS[0];
+
+  // Tupul/Noney 2022 is replayed through the REAL model via GET /backtest/noney-2022.
+  // The other events stay as curated reference timelines.
+  const [liveBacktest, setLiveBacktest] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    module1Api.getNoneyBacktest().then((res) => { if (alive) setLiveBacktest(res); });
+    return () => { alive = false; };
+  }, []);
+
+  const isModelRun = baseEvent.id === 'tupul-2022' && !!liveBacktest;
+  const event = isModelRun
+    ? {
+        ...baseEvent,
+        leadTimeHours: liveBacktest.calculated_lead_time_hours,
+        timeline: liveBacktest.timeline_steps.map((t) => ({
+          dayOffset: t.day_offset,
+          level: t.predicted_level,
+          rainfall: t.rainfall_24h,
+          soilMoisture: `${Math.round(t.soil_moisture * 100)}%`,
+          probability: t.predicted_probability,
+          actualEvent: t.actual_event,
+        })),
+      }
+    : baseEvent;
 
   // Auto-play progression
   useEffect(() => {
@@ -355,6 +382,13 @@ export default function HistoricalBacktesting() {
                 {event.name}
               </div>
               <div className="card-subtitle">{event.period} · {event.location}</div>
+              <div style={{ marginTop: 6 }}>
+                <DataSourceBadge
+                  isLive={isModelRun}
+                  source="Model replay · /backtest/noney-2022"
+                />
+                {!isModelRun && <span style={{ fontSize: 10.5, color: 'var(--text-dim)', marginLeft: 8 }}>Curated reference timeline</span>}
+              </div>
             </div>
             <span className="mvp-flag">VERIFIED GROUND TRUTH</span>
           </div>

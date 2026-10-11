@@ -503,7 +503,9 @@ class OpenStreetMapService:
 out center 40;
 """
         start_time = time.time()
-        elements = self._query_overpass(query, timeout=9)
+        # SANKET_OFFLINE=1 -> skip Overpass entirely and serve the bundled seed infrastructure.
+        from .realtime_api import is_offline_mode
+        elements = None if is_offline_mode() else self._query_overpass(query, timeout=9)
         query_latency_ms = int((time.time() - start_time) * 1000)
 
         assets: List[Dict[str, Any]] = []

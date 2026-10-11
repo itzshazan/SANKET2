@@ -7,25 +7,25 @@ import React from 'react';
 // does, so this is a sequence of real navigations, not a fake recording.
 export const DEMO_STEPS = [
   {
-    view: 'dashboard',
+    view: 'overview',
     selection: { stateId: 'MN', districtId: null, zoneId: null },
     caption: 'NER Regional Dashboard — 118 districts across all 8 North Eastern states, colour-coded by live hazard level.',
     duration: 5000,
   },
   {
-    view: 'dashboard',
+    view: 'overview',
     selection: { stateId: 'MN', districtId: 'noney', zoneId: 'noney-a' },
     caption: 'Drilling into Manipur → Noney — the district built out in full depth for this demo, matching the real 2022 event.',
     duration: 5500,
   },
   {
-    view: 'gis-map',
+    view: 'risk-map',
     selection: { stateId: 'MN', districtId: 'noney', zoneId: 'noney-a' },
     caption: 'GIS Risk Map — real district boundaries, with toggleable layers for roads, villages, and environmental signals.',
     duration: 6000,
   },
   {
-    view: 'monitoring',
+    view: 'monitor',
     selection: { stateId: 'MN', districtId: 'noney', zoneId: 'noney-a' },
     caption: 'Risk Monitoring — live environmental readings, an AI risk assessment, and a ranked "why is this area at risk" explanation.',
     duration: 7000,
@@ -37,13 +37,13 @@ export const DEMO_STEPS = [
     duration: 6000,
   },
   {
-    view: 'priorities',
+    view: 'infra',
     selection: { stateId: 'MN', districtId: 'noney', zoneId: 'noney-a' },
     caption: 'Response Priorities — every zone in the region ranked by hazard, population exposure, and isolation risk.',
     duration: 6000,
   },
   {
-    view: 'backtesting',
+    view: 'history',
     selection: { stateId: 'MN', districtId: 'noney', zoneId: 'noney-a' },
     caption: 'Historical Backtesting — replaying the real Noney 2022 landslide against 30 days of archived signal.',
     duration: 7000,

@@ -21,6 +21,14 @@ from .dem import DemRasterIngestor
 from .satellite import SatelliteOpticsIngestor
 from .landslide import LandslideCatalogIngestor
 
+def is_offline_mode() -> bool:
+    """True when SANKET_OFFLINE=1: never touch the network, use calibrated climatology + bundled data.
+
+    This makes the whole backend run with zero accounts, zero API keys and zero internet.
+    """
+    return os.getenv("SANKET_OFFLINE", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 RAW_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 ROOT_ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 
@@ -265,13 +273,16 @@ class RealTimeDataService:
         has_nasa = bool(nasa_token or nasa_user)
         has_copernicus = bool(copernicus_id and copernicus_secret)
 
-        data_source = (
-            "nasa_earthdata_copernicus" if (has_nasa and has_copernicus)
-            else ("nasa_earthdata_hybrid" if has_nasa else "hybrid_realtime")
-        )
+        # Reports what was ACTUALLY used. Having keys in .env does not mean NASA/Copernicus
+        # data was fetched - the weather and elevation below come from Open-Meteo.
+        data_source = "open_meteo_live"
+
+        offline = is_offline_mode()
 
         # 1. Real-Time Meteorological Telemetry: Past 7 Days (168h) + Current Hour + Forecast
         try:
+            if offline:
+                raise RuntimeError("SANKET_OFFLINE: skipping Open-Meteo")
             url = (
                 f"https://api.open-meteo.com/v1/forecast?"
                 f"latitude={lat}&longitude={lon}&hourly=precipitation,soil_moisture_0_to_1cm,temperature_2m,wind_speed_10m"
@@ -320,7 +331,7 @@ class RealTimeDataService:
             sm_data = self.sm_ingestor.extract_soil_moisture(lat, lon, dt)
             result.update(rf_data)
             result.update(sm_data)
-            data_source = "calibrated_climatology"
+            data_source = "offline_climatology" if offline else "calibrated_climatology"
 
         if "rainfall_24h" not in result:
             result.update(self.rf_ingestor.extract_point_rainfall(lat, lon, dt))
@@ -334,6 +345,8 @@ class RealTimeDataService:
         # 2. Multi-Point DEM Elevation & Finite-Difference Slope / Aspect
         dem_calculated = False
         try:
+            if offline:
+                raise RuntimeError("SANKET_OFFLINE: skipping elevation API")
             delta = 0.005  # ~550m offset in latitude/longitude
             pts_lat = [lat, lat + delta, lat - delta, lat, lat]
             pts_lon = [lon, lon, lon, lon + delta, lon - delta]
@@ -376,15 +389,23 @@ class RealTimeDataService:
         result["historical_landslide_count"] = hist_count
         result["historical_density"] = hist_count
         result["data_source"] = data_source
+        live = data_source == "open_meteo_live"
+        result["provenance"] = {
+            "rainfall_soil_temp_wind": "Open-Meteo (live reanalysis/forecast)" if live else "calibrated climatology (offline)",
+            "elevation_slope": "Open-Meteo elevation grid, 5-point finite difference (~1 km)" if (live and dem_calculated) else "bundled terrain model",
+            "twi": "estimated from slope",
+            "ndvi": "modelled seasonal estimate (NOT live Sentinel-2)",
+            "landslide_history": "ISRO National Landslide Atlas 2023 lookup",
+        }
 
-        # 5. NASA Spaceborne Constellation Live Confirmation
-        gpm_ver = self._verify_nasa_cmr(nasa_token, "GPM_3IMERGHHL") if nasa_token else {}
-        smap_ver = self._verify_nasa_cmr(nasa_token, "SPL3SMP_E") if nasa_token else {}
+        # 5. Satellite credential flags. Live NASA/Copernicus verification is NOT done per
+        # request (it added a blocking third-party call to every telemetry fetch); use
+        # GET /credentials-status for that.
         result["satellite_telemetry"] = {
-            "nasa_gpm_granule": gpm_ver.get("latest_granule"),
-            "nasa_gpm_verified": gpm_ver.get("live_verified", False),
-            "nasa_smap_granule": smap_ver.get("latest_granule"),
-            "nasa_smap_verified": smap_ver.get("live_verified", False),
+            "nasa_gpm_granule": None,
+            "nasa_gpm_verified": False,
+            "nasa_smap_granule": None,
+            "nasa_smap_verified": False,
             "copernicus_auth": has_copernicus,
         }
 

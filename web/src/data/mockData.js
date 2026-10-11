@@ -1137,24 +1137,6 @@ export const BACKTEST_EVENTS = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Navigation model — Strictly aligned with frontentdesign.md (Section 10)
-// ---------------------------------------------------------------------------
-
-export const NAV_ITEMS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'monitor', label: 'Live Monitor' },
-  { id: 'risk-map', label: 'Risk Intelligence' },
-  { id: 'tactical-3d', label: '3D Tactical Globe' },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'history', label: 'Historical Analysis' },
-  { id: 'infra', label: 'Infrastructure' },
-  { id: 'alerts', label: 'Alerts' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'help', label: 'Help' },
-];
-
 export const GIS_LAYERS = {
   risk: ['Critical Danger', 'High Risk', 'Moderate Watch', 'Normal Baseline'],
   geographical: ['State boundaries', 'District boundaries', 'Villages', 'Roads', 'Rivers/drainage', 'Terrain'],
@@ -1174,26 +1156,6 @@ export const ROLES = {
   },
 };
 
-export const NAV_ROLE_ACCESS = {
-  overview: ['district_officer'],
-  dashboard: ['district_officer'],
-  monitor: ['district_officer'],
-  monitoring: ['district_officer'],
-  'risk-map': ['district_officer'],
-  'gis-map': ['district_officer'],
-  'tactical-3d': ['district_officer'],
-  analytics: ['district_officer'],
-  history: ['district_officer'],
-  backtesting: ['district_officer'],
-  infra: ['district_officer'],
-  priorities: ['district_officer'],
-  alerts: ['district_officer', 'field_officer'],
-  reports: ['district_officer'],
-  'field-reports': ['district_officer'],
-  'field-officer': ['district_officer', 'field_officer'],
-  settings: ['district_officer', 'field_officer'],
-  help: ['district_officer', 'field_officer'],
-};
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -104,12 +104,15 @@ SANKET/
 Open a terminal in the project root directory:
 
 ```bash
+pip install -r requirements.txt
 python -m uvicorn module1.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 - **Backend Base URL:** [http://localhost:8000](http://localhost:8000)
 - **Interactive Swagger Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health Check Endpoint:** [http://localhost:8000/api/v1/module1/health](http://localhost:8000/api/v1/module1/health)
+
+**Free / zero-key mode:** no account or API key is required. Open-Meteo and OpenStreetMap are keyless, and the 3D globe uses free Esri/OSM imagery. To run with no internet at all, set `SANKET_OFFLINE=1` before starting the backend (PowerShell: `$env:SANKET_OFFLINE=1`) — it uses calibrated climatology and the bundled infrastructure seed data.
 
 ---
 

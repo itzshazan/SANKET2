@@ -1,6 +1,8 @@
 // SANKET Frontend API Client
 // Standardized fetch wrapper with timeout, error handling, and graceful offline fallback.
 
+import { getAccessToken } from '../auth/token.js';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const DEFAULT_TIMEOUT_MS = 6000;
 
@@ -25,6 +27,7 @@ async function request(endpoint, options = {}) {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         ...(options.headers || {}),
       },
     });

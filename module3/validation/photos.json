@@ -1,0 +1,128 @@
+[
+  {
+    "file": "atami.jpg",
+    "label": "Atami, Japan: road closed after landslide",
+    "expected": "blocked",
+    "commons_title": "Road blocked by Atami landslide.jpg",
+    "author": "番記者",
+    "license": "CC BY-SA 4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Road_blocked_by_Atami_landslide.jpg"
+  },
+  {
+    "file": "girdu.jpg",
+    "label": "Girdu, Pakistan: landslide across road",
+    "expected": "blocked",
+    "commons_title": "Road Block due to landslide at Girdu.JPG",
+    "author": "Engriq",
+    "license": "CC BY-SA 3.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Road_Block_due_to_landslide_at_Girdu.JPG"
+  },
+  {
+    "file": "kentucky.jpg",
+    "label": "Kentucky Route 8, USA: mud and trees",
+    "expected": "blocked",
+    "commons_title": "Landslide on Kentucky Route 8.jpg",
+    "author": "CaseGrillot",
+    "license": "CC0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Landslide_on_Kentucky_Route_8.jpg"
+  },
+  {
+    "file": "zenia.jpg",
+    "label": "Zenia Bluff Road, USA: rockfall",
+    "expected": "blocked",
+    "commons_title": "Landslide Zenia Bluff Road.jpg",
+    "author": "Trinity County Department of Transportation",
+    "license": "Public domain",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Landslide_Zenia_Bluff_Road.jpg"
+  },
+  {
+    "file": "shorwell.jpg",
+    "label": "Shorwell, UK: landslip from the side",
+    "expected": "blocked",
+    "commons_title": "Landslip blocking road near Shorwell, Isle of Wight, England.jpg",
+    "author": "ITookSomePhotos",
+    "license": "CC BY 4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Landslip_blocking_road_near_Shorwell,_Isle_of_Wight,_England.jpg"
+  },
+  {
+    "file": "us30.jpg",
+    "label": "U.S. 30, USA: landslide",
+    "expected": "blocked",
+    "commons_title": "A landslide blocks U.S. 30 (52536644890).jpg",
+    "author": "Oregon Department of Transportation",
+    "license": "CC BY 2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_landslide_blocks_U.S._30_(52536644890).jpg"
+  },
+  {
+    "file": "mallorca.jpg",
+    "label": "Ma-2100, Mallorca: storm landslide",
+    "expected": "blocked",
+    "commons_title": "Storm Gloria landslide on the Ma-2100, Mallorca (1).jpg",
+    "author": "Graeme Churchard",
+    "license": "CC BY 2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Storm_Gloria_landslide_on_the_Ma-2100,_Mallorca_(1).jpg"
+  },
+  {
+    "file": "puray.jpg",
+    "label": "Rizal, Philippines: earthslide, part of road open",
+    "expected": "blocked",
+    "commons_title": "Earthslide partially blocking Puray-Mascap Road, Rizal Province, Philippines.jpg",
+    "author": "Paul Christian B. Yang-ed",
+    "license": "CC BY-SA 4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Earthslide_partially_blocking_Puray-Mascap_Road,_Rizal_Province,_Philippines.jpg"
+  },
+  {
+    "file": "clear_darcha.jpg",
+    "label": "Darcha–Padum road, Himachal",
+    "expected": "clear",
+    "commons_title": "Darcha Padum Road Below Shinku La Lahaul Oct22 A7C 03533.jpg",
+    "author": "Timothy A. Gonsalves",
+    "license": "CC BY-SA 4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Darcha_Padum_Road_Below_Shinku_La_Lahaul_Oct22_A7C_03533.jpg"
+  },
+  {
+    "file": "clear_lahaul.jpg",
+    "label": "Road to Lahaul valley, Himachal",
+    "expected": "clear",
+    "commons_title": "Mountain Road towards Lahaul Valley, Himachal Pradesh.jpg",
+    "author": "Tanvi.sharmaaa",
+    "license": "CC BY-SA 4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Mountain_Road_towards_Lahaul_Valley,_Himachal_Pradesh.jpg"
+  },
+  {
+    "file": "clear_nh7.jpg",
+    "label": "NH 7, Andhra Pradesh",
+    "expected": "clear",
+    "commons_title": "4 lane NH 7 highway in Andhra Pradesh India.jpg",
+    "author": "Prashanth NS",
+    "license": "CC BY-SA 2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:4_lane_NH_7_highway_in_Andhra_Pradesh_India.jpg"
+  },
+  {
+    "file": "clear_nelliampathy.jpg",
+    "label": "Nelliampathy ghat road, Kerala",
+    "expected": "clear",
+    "commons_title": "Nelliampathy Ghat Road - panoramio.jpg",
+    "author": "Jaseem Hamza",
+    "license": "CC BY 3.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Nelliampathy_Ghat_Road_-_panoramio.jpg"
+  },
+  {
+    "file": "clear_valparai.jpg",
+    "label": "Valparai ghat road, Tamil Nadu",
+    "expected": "clear",
+    "commons_title": "Ghat Road, Valparai - panoramio.jpg",
+    "author": "Jaseem Hamza",
+    "license": "CC BY 3.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Ghat_Road,_Valparai_-_panoramio.jpg"
+  },
+  {
+    "file": "clear_uk_rural.jpg",
+    "label": "Rural road, Uttarakhand",
+    "expected": "clear",
+    "commons_title": "Rural road Uttarakhand India.jpg",
+    "author": "anurag agnihotri",
+    "license": "CC BY 2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Rural_road_Uttarakhand_India.jpg"
+  }
+]

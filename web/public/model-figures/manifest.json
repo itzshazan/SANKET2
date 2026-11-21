@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-11-20T19:23:23+00:00",
+  "train_years": "2007–2016",
+  "test_years": "2017–2024",
+  "train_samples": 3375,
+  "test_samples": 1375,
+  "alarm_at": 0.5,
+  "metrics": {
+    "train": {
+      "accuracy": 0.894,
+      "precision": 0.776,
+      "recall": 0.495,
+      "f1": 0.604,
+      "roc_auc": 0.929
+    },
+    "test": {
+      "accuracy": 0.857,
+      "precision": 0.855,
+      "recall": 0.608,
+      "f1": 0.711,
+      "roc_auc": 0.895
+    },
+    "threshold_rule_test": {
+      "accuracy": 0.647,
+      "precision": 0.446,
+      "recall": 0.917,
+      "f1": 0.6,
+      "roc_auc": 0.874
+    }
+  },
+  "majority_class_accuracy_test": 0.711,
+  "figures": [
+    {
+      "file": "01_dataset.png",
+      "title": "Dataset and train/test split",
+      "text": "4,750 samples: 950 real landslide days and 3,800 non-landslide days (the same places on other days, and other places on the same day). Training 2007–2016 (3,375 samples), test 2017–2024 (1,375 samples, never seen in training)."
+    },
+    {
+      "file": "02_training_curve.png",
+      "title": "Training vs validation loss",
+      "text": "One blue/orange pair per internal fold (5 folds). Training stops automatically (early stopping, dot) when the validation loss stops improving, which prevents over-fitting."
+    },
+    {
+      "file": "03_train_vs_test.png",
+      "title": "Accuracy, precision, recall, F1 and ROC-AUC: training vs test",
+      "text": "Test accuracy 85.7% vs training 89.4%; the small gap means the model generalises to years it never saw. Red line: a useless model that always says 'no landslide' would already score 71% accuracy, so recall and ROC-AUC matter more than accuracy here. Recall is lower on training because landslides are 16% of training samples vs 29% of test samples."
+    },
+    {
+      "file": "04_confusion_matrix.png",
+      "title": "Confusion matrix (test set)",
+      "text": "Model at 50%: 242 landslides caught, 156 missed, 41 false alarms, 936 correct 'no alarm'. Percentages are per actual class (row)."
+    },
+    {
+      "file": "05_roc_curve.png",
+      "title": "ROC curve",
+      "text": "How many landslides are caught (up) for each false-alarm rate (right) as the alarm level is moved. Closer to the top-left corner is better; the area under the curve (AUC) summarises it."
+    },
+    {
+      "file": "06_precision_recall.png",
+      "title": "Precision–recall curve",
+      "text": "For rare events this is stricter than ROC: it shows what share of alarms were real landslides at each level of recall."
+    },
+    {
+      "file": "07_calibration.png",
+      "title": "Calibration and confidence distribution",
+      "text": "Left: dots on the dashed line mean the confidence can be read as a probability. Above the line at the high end (it said 75%, 99% were landslides): on the test years the model is cautious, not over-confident, partly because landslides are a larger share of the test samples (29%) than of the training samples (16%). Right: real landslide days (red) get high confidence, other days (grey) mostly low."
+    },
+    {
+      "file": "08_feature_importance.png",
+      "title": "Feature importance",
+      "text": "How much the test ROC-AUC falls when inputs are randomly shuffled. Left: whole groups shuffled together (the fair comparison). Right: one input at a time; single rain windows look small because the other nine rain windows carry almost the same information."
+    },
+    {
+      "file": "09_threshold_tradeoff.png",
+      "title": "Choosing the alarm level",
+      "text": "A lower alarm level catches more landslides (recall) but raises more false alarms. The best F1 score on the test set is at about 25%."
+    },
+    {
+      "file": "10_learning_curve.png",
+      "title": "Learning curve",
+      "text": "With more training data the training score falls (0.969 → 0.929) and the test score stays about the same (0.884 → 0.895): the gap between them narrows, i.e. less over-fitting. Better (more precisely dated and located) records would help more than simply more of the same."
+    },
+    {
+      "file": "11_state_holdout.png",
+      "title": "Spatial test (unseen states)",
+      "text": "Each bar: the model is trained without these states and tested on them, to check it works in places it has never seen."
+    }
+  ]
+}

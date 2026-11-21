@@ -1,0 +1,26 @@
+{
+  "_about": "Monitored districts. lat/lon is the search centre for hotspots (district HQ or the main landslide-prone sector), not a measurement point.",
+  "districts": [
+    {"id": "wayanad", "name": "Wayanad", "state": "Kerala", "region": "Western Ghats", "lat": 11.6854, "lon": 76.1320},
+    {"id": "idukki", "name": "Idukki", "state": "Kerala", "region": "Western Ghats", "lat": 9.8494, "lon": 76.9723},
+    {"id": "raigad", "name": "Raigad", "state": "Maharashtra", "region": "Western Ghats", "lat": 18.2346, "lon": 73.4442},
+    {"id": "pune", "name": "Pune (Ghat section)", "state": "Maharashtra", "region": "Western Ghats", "lat": 19.1583, "lon": 73.6872},
+    {"id": "nilgiris", "name": "Nilgiris", "state": "Tamil Nadu", "region": "Western Ghats", "lat": 11.4102, "lon": 76.6950},
+    {"id": "rudraprayag", "name": "Rudraprayag", "state": "Uttarakhand", "region": "North-Western Himalayas", "lat": 30.2844, "lon": 78.9811},
+    {"id": "chamoli", "name": "Chamoli", "state": "Uttarakhand", "region": "North-Western Himalayas", "lat": 30.5564, "lon": 79.5670},
+    {"id": "tehri", "name": "Tehri Garhwal", "state": "Uttarakhand", "region": "North-Western Himalayas", "lat": 30.3800, "lon": 78.4800},
+    {"id": "mandi", "name": "Mandi", "state": "Himachal Pradesh", "region": "North-Western Himalayas", "lat": 31.7087, "lon": 76.9319},
+    {"id": "shimla", "name": "Shimla", "state": "Himachal Pradesh", "region": "North-Western Himalayas", "lat": 31.1048, "lon": 77.1734},
+    {"id": "kullu", "name": "Kullu", "state": "Himachal Pradesh", "region": "North-Western Himalayas", "lat": 31.9579, "lon": 77.1095},
+    {"id": "ramban", "name": "Ramban", "state": "Jammu & Kashmir", "region": "North-Western Himalayas", "lat": 33.2422, "lon": 75.2415},
+    {"id": "noney", "name": "Noney", "state": "Manipur", "region": "North-Eastern Region", "lat": 24.7831, "lon": 93.6322},
+    {"id": "tamenglong", "name": "Tamenglong", "state": "Manipur", "region": "North-Eastern Region", "lat": 24.9850, "lon": 93.4920},
+    {"id": "east-sikkim", "name": "East Sikkim", "state": "Sikkim", "region": "North-Eastern Region", "lat": 27.3389, "lon": 88.6065},
+    {"id": "aizawl", "name": "Aizawl", "state": "Mizoram", "region": "North-Eastern Region", "lat": 23.7271, "lon": 92.7176},
+    {"id": "kohima", "name": "Kohima", "state": "Nagaland", "region": "North-Eastern Region", "lat": 25.6751, "lon": 94.1086},
+    {"id": "dima-hasao", "name": "Dima Hasao", "state": "Assam", "region": "North-Eastern Region", "lat": 25.1830, "lon": 93.0210},
+    {"id": "east-khasi-hills", "name": "East Khasi Hills", "state": "Meghalaya", "region": "North-Eastern Region", "lat": 25.5788, "lon": 91.8933},
+    {"id": "lower-dibang-valley", "name": "Lower Dibang Valley", "state": "Arunachal Pradesh", "region": "North-Eastern Region", "lat": 28.1400, "lon": 95.8400},
+    {"id": "khowai", "name": "Khowai", "state": "Tripura", "region": "North-Eastern Region", "lat": 24.0600, "lon": 91.6000}
+  ]
+}

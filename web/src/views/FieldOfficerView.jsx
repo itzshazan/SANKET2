@@ -1,25 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { module1Api } from '../services/module1Api.js';
-import { REPORT_TYPES, VILLAGES } from '../data/mockData.js';
+import { REPORT_TYPES } from '../data/catalog.js';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
 import { IconCamera, IconUpload, IconWifiOff, IconMapPin, IconCheckCircle, IconRefresh } from '../components/icons.jsx';
 
-// Field Officer View is scoped to Noney (the district this role is demoed against) —
-// pulling from every district's villages here would (a) show a field officer
-// locations outside their own area, and (b) collide on React keys, since the
-// ~109 auto-generated districts reuse generic names like "Village A".
-const LOCATIONS = Object.entries(VILLAGES)
-  .filter(([id]) => id.startsWith('village-noney-'))
-  .map(([, v]) => v.name)
-  .concat(['Noney town centre', 'Tupul railway camp (NH-37)']);
-
 export default function FieldOfficerView() {
-  const [offlineMode, setOfflineMode] = useState(false);
-  const [location, setLocation] = useState(LOCATIONS[0]);
+  // Real connection state from the device (no simulation toggle).
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const down = () => setOnline(false);
+    window.addEventListener('online', up);
+    window.addEventListener('offline', down);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+  }, []);
+  const offlineMode = !online;
+  const live = useLiveDistricts();
+  const [location, setLocation] = useState('');
+  const [gpsError, setGpsError] = useState('');
   const [reportType, setReportType] = useState('Road blockage');
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState(null);
   const [gps, setGps] = useState(null);
-  const [queue, setQueue] = useState([]); // pending-sync reports while offline
+  // Reports waiting to be sent; kept on this device so they survive a reload while offline.
+  const [queue, setQueue] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sanket_field_queue_v1') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('sanket_field_queue_v1', JSON.stringify(queue.map((r) => ({ ...r, photoUrl: r.photoUrl ? 'attached' : null })))); } catch { /* ignore */ }
+  }, [queue]);
   const [submitted, setSubmitted] = useState([]); // synced report cards
   const nextId = useRef(1);
   const [notice, setNotice] = useState('');
@@ -42,15 +51,15 @@ export default function FieldOfficerView() {
   });
   const fileRef = useRef(null);
 
-  function generateGpsString() {
-    // Simulated GPS lock — a jittered coordinate near Noney, consistent with the mock zone.
-    const lat = (24.73 + (Math.random() - 0.5) * 0.01).toFixed(4);
-    const lng = (93.745 + (Math.random() - 0.5) * 0.01).toFixed(4);
-    return `${lat}° N, ${lng}° E`;
-  }
-
+  // Real device location (browser Geolocation API). Nothing is invented if it is unavailable.
   function captureGps() {
-    setGps(generateGpsString());
+    setGpsError('');
+    if (!navigator.geolocation) { setGpsError('This device/browser has no geolocation'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGps(`${pos.coords.latitude.toFixed(5)}° N, ${pos.coords.longitude.toFixed(5)}° E (±${Math.round(pos.coords.accuracy)} m)`),
+      (err) => setGpsError(`GPS unavailable: ${err.message}`),
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
   }
 
   function handlePhoto(e) {
@@ -62,8 +71,8 @@ export default function FieldOfficerView() {
     // Compute locally rather than reading `gps` state, which would still hold
     // its pre-update value inside this same handler (React state updates are
     // async) if the officer never pressed "Capture GPS" first.
-    const gpsValue = gps || generateGpsString();
-    setGps(gpsValue);
+    if (!location.trim()) { setNotice('Enter the location of the observation.'); return; }
+    const gpsValue = gps || null;
     const report = {
       id: String(nextId.current++),
       location, type: reportType, description, photoUrl,
@@ -87,6 +96,11 @@ export default function FieldOfficerView() {
     setGps(null);
   }
 
+  // Send queued reports automatically when the connection comes back.
+  useEffect(() => {
+    if (online && queue.length) handleSync();
+  }, [online]);
+
   async function handleSync() {
     const failed = [];
     const synced = [];
@@ -105,10 +119,10 @@ export default function FieldOfficerView() {
       {/* Phone-framed form */}
       <div style={{ width: 340, flex: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: offlineMode ? 'var(--hazard-danger)' : 'var(--text-muted)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={offlineMode} onChange={(e) => setOfflineMode(e.target.checked)} />
-            <IconWifiOff width={13} height={13} /> Simulate no network
-          </label>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: online ? 'var(--hazard-normal)' : 'var(--hazard-danger)' }}>
+            {online ? <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor' }} /> : <IconWifiOff width={13} height={13} />}
+            {online ? 'Online' : 'Offline'}
+          </span>
           {queue.length > 0 && (
             <button className="btn primary" style={{ fontSize: 11, padding: '4px 9px' }} onClick={handleSync}>
               <IconRefresh width={12} height={12} /> Sync {queue.length}
@@ -122,13 +136,13 @@ export default function FieldOfficerView() {
         }}>
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>SANKET Field Report</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>Field Officer view</div>
           </div>
 
           <div className="section-label">Location</div>
-          <select className="select-control" style={{ width: '100%', marginBottom: 14 }} value={location} onChange={(e) => setLocation(e.target.value)}>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
+          <input className="select-control" list="sanket-district-list" placeholder="Village / road / landmark, district" style={{ width: '100%', marginBottom: 14 }} value={location} onChange={(e) => setLocation(e.target.value)} />
+          <datalist id="sanket-district-list">
+            {live.list.map((d) => <option key={d.id} value={`${d.name}, ${d.state}`} />)}
+          </datalist>
 
           <div className="section-label">Report Type</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
@@ -165,8 +179,9 @@ export default function FieldOfficerView() {
 
           <div className="section-label">GPS Location</div>
           <button className="btn" style={{ width: '100%', justifyContent: 'center', marginBottom: 16 }} onClick={captureGps}>
-            <IconMapPin width={14} height={14} /> {gps ? gps : 'Capture GPS'}
+            <IconMapPin width={14} height={14} /> {gps ? gps : 'Capture GPS (device location)'}
           </button>
+          {gpsError && <div style={{ fontSize: 11, color: 'var(--hazard-danger)', marginTop: -10, marginBottom: 12 }}>{gpsError}</div>}
 
           <button className="btn primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSubmit}>
             <IconUpload width={14} height={14} /> Submit Report
@@ -174,7 +189,7 @@ export default function FieldOfficerView() {
 
           {offlineMode && (
             <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: 'var(--hazard-watch)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <IconWifiOff width={12} height={12} /> No network — reports save locally
+              <IconWifiOff width={12} height={12} /> Offline: reports are saved on this device and sent automatically when the connection returns
             </div>
           )}
         </div>
@@ -199,7 +214,7 @@ export default function FieldOfficerView() {
 
         {submitted.length === 0 && queue.length === 0 && (
           <div className="card">
-            <div style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>Submitted reports appear here as cards, matching the district officer's Field Reports view.</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>Submitted reports appear here, and in the district officer's Alerts tab.</div>
           </div>
         )}
 
@@ -214,7 +229,7 @@ export default function FieldOfficerView() {
               <div>Type: <b style={{ color: 'var(--text-primary)' }}>{r.type}</b></div>
               {r.description && <div style={{ color: 'var(--text-primary)' }}>{r.description}</div>}
               <div>Photo: {r.photoUrl ? 'Attached' : '—'}</div>
-              <div>GPS: {r.gps}</div>
+              <div>GPS: {r.gps || 'not captured'}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--hazard-normal)' }}><IconCheckCircle width={12} height={12} /> Synced to dashboard</div>
             </div>
           </div>

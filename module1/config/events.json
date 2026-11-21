@@ -1,0 +1,14 @@
+{
+  "_about": "Real rainfall-triggered landslide disasters used to replay the threshold model on ERA5 reanalysis rainfall. Dates are the IST calendar day of the main failure. Coordinates are approximate (a few km), which is finer than the ERA5 grid (~25 km) used for rainfall. Non-rainfall events (e.g. Chamoli 7 Feb 2021 rock-ice avalanche) are deliberately excluded.",
+  "events": [
+    {"id": "wayanad-2024", "name": "Mundakkai-Chooralmala debris flow", "date": "2024-07-30", "location": "Meppadi, Wayanad, Kerala", "state": "Kerala", "lat": 11.49, "lon": 76.15},
+    {"id": "aizawl-2024", "name": "Aizawl landslides (Cyclone Remal)", "date": "2024-05-28", "location": "Aizawl, Mizoram", "state": "Mizoram", "lat": 23.69, "lon": 92.72},
+    {"id": "irshalwadi-2023", "name": "Irshalwadi landslide", "date": "2023-07-19", "location": "Khalapur, Raigad, Maharashtra", "state": "Maharashtra", "lat": 18.91, "lon": 73.26},
+    {"id": "shimla-2023", "name": "Summer Hill (Shiv Bawdi) landslide", "date": "2023-08-14", "location": "Shimla, Himachal Pradesh", "state": "Himachal Pradesh", "lat": 31.10, "lon": 77.15},
+    {"id": "tupul-2022", "name": "Tupul railway camp landslide", "date": "2022-06-30", "location": "Tupul, Noney, Manipur", "state": "Manipur", "lat": 24.79, "lon": 93.64},
+    {"id": "taliye-2021", "name": "Taliye landslide", "date": "2021-07-22", "location": "Mahad, Raigad, Maharashtra", "state": "Maharashtra", "lat": 18.15, "lon": 73.54},
+    {"id": "pettimudi-2020", "name": "Pettimudi landslide", "date": "2020-08-06", "location": "Munnar, Idukki, Kerala", "state": "Kerala", "lat": 10.16, "lon": 77.02},
+    {"id": "kotropi-2017", "name": "Kotropi landslide (NH-154)", "date": "2017-08-13", "location": "Padhar, Mandi, Himachal Pradesh", "state": "Himachal Pradesh", "lat": 31.93, "lon": 76.87},
+    {"id": "malin-2014", "name": "Malin landslide", "date": "2014-07-30", "location": "Ambegaon, Pune, Maharashtra", "state": "Maharashtra", "lat": 19.16, "lon": 73.69}
+  ]
+}

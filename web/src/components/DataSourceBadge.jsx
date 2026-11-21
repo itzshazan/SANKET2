@@ -1,78 +1,31 @@
 import React from 'react';
+import { ageText } from '../data/catalog.js';
 
-export default function DataSourceBadge({
-  isLive = true,
-  source = 'Open-Meteo & DEM',
-  updatedAt = null,
-  compact = false,
-}) {
-  if (compact) {
-    return (
-      <span
-        className="live-badge-compact"
-        title={`Source: ${source}${updatedAt ? ` · Updated ${new Date(updatedAt).toLocaleTimeString()}` : ''}`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '2px 7px',
-          borderRadius: 4,
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-          background: isLive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-          color: isLive ? '#10b981' : '#f59e0b',
-          border: `1px solid ${isLive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
-        }}
-      >
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            backgroundColor: isLive ? '#10b981' : '#f59e0b',
-            boxShadow: isLive ? '0 0 6px #10b981' : 'none',
-            animation: isLive ? 'pulse-green 2s infinite' : 'none',
-          }}
-        />
-        {isLive ? 'LIVE' : 'REF'}
-      </span>
-    );
-  }
+// status: 'live' | 'stale' | 'unavailable'  (comes from the backend, never assumed)
+const STYLE = {
+  live: { fg: '#028C74', bg: 'rgba(2,140,116,0.1)', label: 'LIVE' },
+  stale: { fg: '#B7860F', bg: 'rgba(201,151,31,0.13)', label: 'LAST REAL READING' },
+  unavailable: { fg: '#64726F', bg: 'rgba(100,114,111,0.12)', label: 'NO DATA' },
+};
 
+export default function DataSourceBadge({ status = 'unavailable', source, updatedAt = null, ageMinutes = null, compact = false }) {
+  const s = STYLE[status] || STYLE.unavailable;
+  const when = updatedAt ? new Date(updatedAt).toLocaleString() : null;
+  const title = [source && `Source: ${source}`, when && `Data time: ${when}`, status === 'stale' && ageText(ageMinutes)]
+    .filter(Boolean).join(' · ');
   return (
-    <div
-      className="live-data-badge"
+    <span
+      title={title}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 7,
-        padding: '3px 10px',
-        borderRadius: 20,
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '0.03em',
-        background: isLive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-        color: isLive ? '#10b981' : '#f59e0b',
-        border: `1px solid ${isLive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: compact ? '2px 7px' : '3px 10px',
+        borderRadius: compact ? 4 : 20, fontSize: compact ? 10 : 11, fontWeight: 600, letterSpacing: '0.03em',
+        background: s.bg, color: s.fg, border: `1px solid ${s.fg}40`, whiteSpace: 'nowrap',
       }}
     >
-      <span
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          backgroundColor: isLive ? '#10b981' : '#f59e0b',
-          boxShadow: isLive ? '0 0 8px #10b981' : 'none',
-        }}
-      />
-      <span>{isLive ? `Live Telemetry (${source})` : 'Offline Reference'}</span>
-      {updatedAt && (
-        <span style={{ opacity: 0.6, fontSize: 10, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 6 }}>
-          {new Date(updatedAt).toLocaleTimeString()}
-        </span>
-      )}
-    </div>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.fg }} />
+      {s.label}
+      {!compact && status === 'stale' && ageMinutes != null && <span style={{ opacity: 0.8 }}>· {ageText(ageMinutes)}</span>}
+      {!compact && source && status !== 'unavailable' && <span style={{ opacity: 0.7, fontWeight: 500 }}>· {source}</span>}
+    </span>
   );
 }

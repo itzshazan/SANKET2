@@ -53,12 +53,28 @@ htmlcov/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Environment & Credentials
+# Environment & Credentials: never commit (Supabase service key, Copernicus / NASA tokens, ...)
 .env
 .env.*
 .env.example
 *.pem
 *.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.netrc
+.npmrc
+client_secret*.json
+*credentials*.json
+*service-account*.json
+# old file with hard-coded API keys (removed; must never come back)
+web/src/config/keys.js
+# deploy and tool links (project ids, local permissions)
+.vercel/
+supabase/.temp/
+supabase/.branches/
+.claude/settings.local.json
 
 # Temporary / Donor Repositories
 .temp_godseye/
@@ -83,6 +99,12 @@ frontentdesign.md
 # Data & Ingestion Caches (ignore cached responses, preserve directory structure)
 module1/data/cache/*
 !module1/data/cache/.gitkeep
+
+# Downloaded source datasets (landslide inventories, GSI exports): large, re-downloadable
+module1/data/raw/**/*.csv
+module1/data/raw/**/*.geojson
+module1/data/raw/**/*.json
+module1/data/raw/**/*.zip
 
 # Heavy Geospatial / Satellite / Raster Raw Downloads
 *.tif
@@ -113,5 +135,13 @@ Thumbs.db:encryptable
 *~
 
 
-# Local SQLite store (field reports / incidents)
-module1/data/*.db
+# Local databases: field reports and incidents hold names, phone numbers and locations
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Module 3 pretrained scene model (237 MB): python -m module3.download_weights
+module3/saved_models/upernet_convnext_tiny_ade20k/

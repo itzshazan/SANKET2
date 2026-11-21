@@ -6,20 +6,14 @@ import {
   IconAlertTriangle, IconActivity, IconInfo, IconRefresh 
 } from '../components/icons.jsx';
 import { module1Api } from '../services/module1Api.js';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
+import { REGIONS } from '../data/catalog.js';
 
-const MONITORING_HUBS = [
-  { id: 'rudraprayag', name: 'Rudraprayag', state: 'Uttarakhand', lat: 30.285, lon: 78.981 },
-  { id: 'wayanad', name: 'Wayanad', state: 'Kerala', lat: 11.605, lon: 76.083 },
-  { id: 'mandi', name: 'Mandi', state: 'Himachal Pradesh', lat: 31.589, lon: 76.918 },
-  { id: 'chamoli', name: 'Chamoli', state: 'Uttarakhand', lat: 30.410, lon: 79.330 },
-  { id: 'noney', name: 'Noney', state: 'Manipur', lat: 24.810, lon: 93.600 },
-  { id: 'raigad', name: 'Raigad', state: 'Maharashtra', lat: 18.235, lon: 73.445 },
-  { id: 'ramban', name: 'Ramban', state: 'Jammu & Kashmir', lat: 33.245, lon: 75.240 },
-  { id: 'nilgiris', name: 'Nilgiris', state: 'Tamil Nadu', lat: 11.410, lon: 76.703 },
-];
-
-export default function Infrastructure({ goTo }) {
-  const [activeHubId, setActiveHubId] = useState('rudraprayag');
+export default function Infrastructure({ goTo, selection }) {
+  // All monitored districts come from the backend registry (no hand-typed list).
+  const live = useLiveDistricts();
+  const hubs = useMemo(() => live.list.map((d) => ({ id: d.id, name: d.name, state: d.state, region: d.region, lat: d.lat, lon: d.lon })), [live.list]);
+  const [activeHubId, setActiveHubId] = useState(selection?.districtId || 'rudraprayag');
   const [radiusKm, setRadiusKm] = useState(6.0);
   const [selectedAssetId, setSelectedAssetId] = useState(null);
   const [riskFilter, setRiskFilter] = useState('all');
@@ -35,12 +29,12 @@ export default function Infrastructure({ goTo }) {
   const [loadingOsm, setLoadingOsm] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const activeHub = useMemo(() => {
-    return MONITORING_HUBS.find((h) => h.id === activeHubId) || MONITORING_HUBS[0];
-  }, [activeHubId]);
+  // null until the district registry has loaded, so we never query the wrong place.
+  const activeHub = useMemo(() => hubs.find((h) => h.id === activeHubId) || hubs[0] || null, [activeHubId, hubs]);
 
   // Load live OpenStreetMap Overpass data for the active hub & radius
   async function loadOsmData(force = false) {
+    if (!activeHub) return;
     setLoadingOsm(true);
     setErrorMsg('');
     try {
@@ -57,7 +51,7 @@ export default function Infrastructure({ goTo }) {
           setSelectedAssetId(res.assets[0].id);
         }
       } else {
-        setErrorMsg('Live OSM Overpass did not return data. Retrying mirror...');
+        setErrorMsg('Backend unreachable: no OpenStreetMap data.');
       }
     } catch (err) {
       setErrorMsg('Error querying OpenStreetMap Overpass.');
@@ -68,7 +62,7 @@ export default function Infrastructure({ goTo }) {
 
   useEffect(() => {
     loadOsmData(false);
-  }, [activeHubId, radiusKm]);
+  }, [activeHub?.id, radiusKm]);
 
   const assets = useMemo(() => {
     return osmData?.assets || [];
@@ -98,7 +92,7 @@ export default function Infrastructure({ goTo }) {
   const radiusCircleRef = useRef(null);
 
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current || !activeHub) return;
 
     try {
       if (!mapInstanceRef.current) {
@@ -166,20 +160,20 @@ export default function Infrastructure({ goTo }) {
       const epicenter = L.circleMarker([activeHub.lat, activeHub.lon], {
         radius: 8,
         color: '#ffffff',
-        fillColor: '#EF4444',
+        fillColor: '#B42318',
         fillOpacity: 1,
         weight: 2.5,
       }).addTo(markerGroup);
       epicenter.bindTooltip(`
-        <div style="font-family: sans-serif; font-size: 11.5px; font-weight: bold; color: #DC2626;">
-          📍 Hazard Epicenter: ${activeHub.name} (${activeHub.lat.toFixed(3)}°N, ${activeHub.lon.toFixed(3)}°E)
+        <div style="font-family: sans-serif; font-size: 11.5px; font-weight: bold; color: #B42318;">
+          📍 District centre: ${activeHub.name} (${activeHub.lat.toFixed(3)}°N, ${activeHub.lon.toFixed(3)}°E)
         </div>
       `, { direction: 'top' });
 
       // Render asset markers
       filteredAssets.forEach((asset) => {
         const isSelected = asset.id === selectedAssetId;
-        const color = asset.risk === 'danger' ? '#DC2626' : asset.risk === 'warning' ? '#D97706' : '#16A34A';
+        const color = asset.risk === 'danger' ? '#B42318' : asset.risk === 'warning' ? '#E5600A' : '#1F9D55';
 
         const marker = L.circleMarker([asset.lat, asset.lon], {
           radius: isSelected ? 12 : 8,
@@ -192,8 +186,7 @@ export default function Infrastructure({ goTo }) {
         marker.bindTooltip(`
           <div style="font-family: sans-serif; font-size: 11.5px;">
             <b>${asset.category}: ${asset.name}</b><br/>
-            <span>${asset.distance_km} km from epicenter</span><br/>
-            <span style="color: ${color}; font-weight: bold;">${asset.riskLabel}</span>
+            <span style="color: ${color}; font-weight: bold;">${asset.distance_km} km from the district centre</span>
           </div>
         `, { direction: 'top' });
 
@@ -228,243 +221,99 @@ export default function Infrastructure({ goTo }) {
     }
   }
 
+  if (!activeHub) {
+    return <div className="card" style={{ padding: 20, fontSize: 13, color: live.error ? 'var(--hazard-danger)' : 'var(--text-muted)' }}>{live.error || 'Loading monitored districts…'}</div>;
+  }
+
+  const fetched = osmData?.fetched_at ? new Date(osmData.fetched_at).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const osmStatus = loadingOsm ? { c: '#64726F', t: 'Loading…' }
+    : osmData?.status === 'unavailable' ? { c: '#64726F', t: `OpenStreetMap unavailable${osmData.reason ? `: ${osmData.reason}` : ''}` }
+      : osmData?.status === 'stale' ? { c: '#B7860F', t: `Last real data · ${fetched}` }
+        : { c: '#028C74', t: `OpenStreetMap · ${fetched || 'live'}` };
+  const RING_COLOR = { danger: '#B42318', warning: '#E5600A', normal: '#1F9D55' };
+  const CATEGORIES = [
+    { id: 'hospitals', label: 'Hospitals', icon: '🏥' },
+    { id: 'roads', label: 'Roads', icon: '🛣️' },
+    { id: 'schools', label: 'Schools', icon: '🏫' },
+    { id: 'bridges', label: 'Bridges', icon: '🌉' },
+    { id: 'helipads', label: 'Helipads', icon: '🚁' },
+  ];
+  const CAT_ICON = { Hospital: '🏥', Road: '🛣️', School: '🏫', Bridge: '🌉' };
+  const rings = [
+    ['Within 2.2 km', osmData?.high_risk_count, RING_COLOR.danger],
+    ['2.2 – 4.8 km', osmData?.moderate_risk_count, RING_COLOR.warning],
+    [`4.8 – ${radiusKm} km`, osmData?.secure_count, RING_COLOR.normal],
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 07. INFRASTRUCTURE INTELLIGENCE — HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-              INFRASTRUCTURE INTELLIGENCE (OPENSTREETMAP LIVE)
-            </h1>
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, 
-              padding: '3px 8px', borderRadius: 'var(--radius-sm)',
-              background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)',
-              color: 'var(--accent)'
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <select className="select-control" style={{ fontWeight: 700, height: 32 }} value={activeHubId} onChange={(e) => setActiveHubId(e.target.value)}>
+          {REGIONS.map((r) => (
+            <optgroup key={r} label={r}>
+              {hubs.filter((h) => h.region === r).map((hub) => (
+                <option key={hub.id} value={hub.id}>{hub.name}, {hub.state}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <select className="select-control" style={{ height: 32 }} value={radiusKm} onChange={(e) => setRadiusKm(parseFloat(e.target.value))}>
+          {[3, 6, 10, 15].map((r) => <option key={r} value={r}>{r} km radius</option>)}
+        </select>
+        <button className="btn" style={{ fontSize: 12 }} onClick={() => loadOsmData(true)} disabled={loadingOsm}>
+          {loadingOsm ? 'Loading…' : 'Refresh'}
+        </button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-muted)' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: osmStatus.c }} /> {osmStatus.t}
+        </span>
+      </div>
+
+      <div className="grid stack-md" style={{ gridTemplateColumns: '190px 1fr 220px', gap: 14, alignItems: 'stretch' }}>
+        {/* Categories */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="section-label">Show</div>
+          {CATEGORIES.map((f) => (
+            <label key={f.id} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, cursor: 'pointer',
+              padding: '6px 8px', borderRadius: 'var(--radius-sm)', background: enabledLayers[f.id] ? 'var(--surface-2)' : 'transparent',
+              color: enabledLayers[f.id] ? 'var(--text-primary)' : 'var(--text-dim)',
             }}>
-              Overpass QL Live Vector Ingestion
-            </span>
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            Direct spatial querying of roads, emergency hospitals, relief shelters, bridges, and helipads around landslide epicenters
-          </div>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <input type="checkbox" checked={enabledLayers[f.id]} onChange={() => toggleLayer(f.id)} />
+                <span>{f.icon}</span> {f.label}
+              </span>
+              <b style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{osmData?.by_category?.[f.id] || 0}</b>
+            </label>
+          ))}
         </div>
 
-        {/* Hub Selector, Radius, and Refresh */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <select
-            value={activeHubId}
-            onChange={(e) => setActiveHubId(e.target.value)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            {MONITORING_HUBS.map((hub) => (
-              <option key={hub.id} value={hub.id}>
-                📍 {hub.name} ({hub.state})
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={radiusKm}
-            onChange={(e) => setRadiusKm(parseFloat(e.target.value))}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-            }}
-          >
-            <option value={3.0}>Radius: 3 km</option>
-            <option value={6.0}>Radius: 6 km</option>
-            <option value={10.0}>Radius: 10 km</option>
-            <option value={15.0}>Radius: 15 km</option>
-          </select>
-
-          <button 
-            className="btn" 
-            onClick={() => loadOsmData(true)} 
-            disabled={loadingOsm}
-            style={{ fontSize: 11.5, borderColor: 'var(--accent)' }}
-          >
-            {loadingOsm ? 'Querying OSM...' : '📡 Force OSM Re-query'}
-          </button>
-        </div>
-      </div>
-
-      {/* OVERPASS TELEMETRY BANNER */}
-      <div className="card" style={{ padding: '10px 16px', background: 'var(--surface-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ 
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font-mono)',
-            color: osmData?.cached ? '#10B981' : '#3B82F6',
-          }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: osmData?.cached ? '#10B981' : '#3B82F6', display: 'inline-block' }} />
-            {loadingOsm ? 'FETCHING VECTORS VIA OVERPASS...' : (osmData?.cached ? 'CACHED OSM REGISTRY (0.03 ms)' : `LIVE OVERPASS RESPONSE (${osmData?.query_latency_ms || 12} ms)`)}
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Endpoint: <code style={{ color: 'var(--text-primary)' }}>https://overpass-api.de/api/interpreter</code>
-          </span>
+        {/* Map */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div ref={mapContainerRef} style={{ width: '100%', height: 460, background: '#013126' }} />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>
-          <span style={{ color: 'var(--text-dim)' }}>
-            Target: <b>{activeHub.name} ({activeHub.lat.toFixed(3)}°N, {activeHub.lon.toFixed(3)}°E)</b>
-          </span>
-          <span style={{ color: 'var(--text-dim)' }}>
-            Search Area: <b>{Math.round(Math.PI * radiusKm * radiusKm)} km²</b>
-          </span>
-        </div>
-      </div>
-
-      {/* 3-COLUMN LAYOUT: FILTERS (230px) | MAP (DOMINANT) | IMPACT SUMMARY (310px) */}
-      <div className="grid" style={{ gridTemplateColumns: '230px 1fr 310px', gap: 14, alignItems: 'stretch' }}>
-        {/* LEFT FILTERS PANEL */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
-            INFRASTRUCTURE CATEGORIES
+        {/* Distance summary + selected asset */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="section-label">Distance from district centre</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5 }}>
+            <span>Total</span><b style={{ fontFamily: 'var(--font-mono)', fontSize: 20 }}>{osmData?.total_assets || 0}</b>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
-              { id: 'hospitals', label: 'HOSPITALS & CLINICS', count: osmData?.by_category?.hospitals || 0, icon: '🏥' },
-              { id: 'roads', label: 'HIGHWAYS & ROADS', count: osmData?.by_category?.roads || 0, icon: '🛣️' },
-              { id: 'schools', label: 'SCHOOLS & SHELTERS', count: osmData?.by_category?.schools || 0, icon: '🏫' },
-              { id: 'bridges', label: 'RIVER BRIDGES', count: osmData?.by_category?.bridges || 0, icon: '🌉' },
-              { id: 'helipads', label: 'EMERGENCY HELIPADS', count: osmData?.by_category?.helipads || 0, icon: '🚁' },
-            ].map((f) => (
-              <label 
-                key={f.id} 
-                style={{ 
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer',
-                  padding: '7px 10px', borderRadius: 'var(--radius-sm)',
-                  background: enabledLayers[f.id] ? 'var(--surface-2)' : 'transparent',
-                  border: enabledLayers[f.id] ? '1px solid var(--border)' : '1px solid transparent',
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input 
-                    type="checkbox" 
-                    checked={enabledLayers[f.id]} 
-                    onChange={() => toggleLayer(f.id)} 
-                  />
-                  <span>{f.icon}</span>
-                  <b style={{ color: enabledLayers[f.id] ? 'var(--text-primary)' : 'var(--text-dim)', fontSize: 11.5 }}>
-                    {f.label}
-                  </b>
-                </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700 }}>
-                  {f.count}
-                </span>
-              </label>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 'auto', padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5 }}>
-            ⚡ <b>Live OSM Vectors</b>: Elements dynamically extracted from OpenStreetMap contributors, classified by proximity to the active slope hazard epicenter.
-          </div>
-        </div>
-
-        {/* CENTER INFRASTRUCTURE MAP (DOMINANT) */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ 
-            padding: '10px 14px', 
-            background: 'var(--surface-2)', 
-            borderBottom: '1px solid var(--border)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-          }}>
-            <span style={{ fontWeight: 700, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconMap width={14} height={14} />
-              EXPOSURE SPATIAL RADAR · {activeHub.name.toUpperCase()}
-            </span>
-            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-              Satellite + OSM Vector Hybrid Overlay
-            </span>
-          </div>
-
-          <div 
-            ref={mapContainerRef} 
-            style={{ width: '100%', height: 440, minHeight: 400, background: '#1c2620' }} 
-          />
-        </div>
-
-        {/* RIGHT INFRASTRUCTURE IMPACT PANEL */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
-              HAZARD EXPOSURE AUDIT
+          {rings.map(([label, n, color]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: color }} />{label}</span>
+              <b style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color }}>{n || 0}</b>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
-              Zone radius: {radiusKm} km around {activeHub.name}
-            </div>
-          </div>
+          ))}
 
-          {/* 3 Metric Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total OSM Assets in Radius</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 22, marginTop: 2 }}>
-                {osmData?.total_assets || 0}
-              </div>
-            </div>
-
-            <div style={{ padding: '10px 12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700 }}>High Risk (&lt;2.2 km from Slope)</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 22, color: '#EF4444', marginTop: 2 }}>
-                {osmData?.high_risk_count || 0}
-              </div>
-            </div>
-
-            <div style={{ padding: '10px 12px', background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.3)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: '#D97706', fontWeight: 700 }}>Moderate Risk (Buffer 2.2–4.8 km)</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 22, color: '#D97706', marginTop: 2 }}>
-                {osmData?.moderate_risk_count || 0}
-              </div>
-            </div>
-
-            <div style={{ padding: '10px 12px', background: 'rgba(22, 163, 74, 0.12)', border: '1px solid rgba(22, 163, 74, 0.3)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: '#16A34A', fontWeight: 700 }}>Secure Ground (&gt;4.8 km)</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 22, color: '#16A34A', marginTop: 2 }}>
-                {osmData?.secure_count || 0}
-              </div>
-            </div>
-          </div>
-
-          {/* Selected Asset Highlights */}
           {selectedAsset && (
-            <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
-                Selected Target Asset:
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 13, marginTop: 3, color: 'var(--text-primary)' }}>
-                {selectedAsset.name}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                {selectedAsset.capacity}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4 }}>
-                Distance: <b>{selectedAsset.distance_km} km</b> · {selectedAsset.location}
-              </div>
+            <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: 10, fontSize: 12 }}>
+              <div className="section-label">Selected</div>
+              <div style={{ fontWeight: 800, fontSize: 13, marginTop: 3 }}>{selectedAsset.name}</div>
+              <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>{selectedAsset.category} · {selectedAsset.distance_km} km</div>
               {selectedAsset.osm_url && (
-                <a 
-                  href={selectedAsset.osm_url} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  style={{ display: 'inline-block', fontSize: 11, color: '#3B82F6', marginTop: 6, textDecoration: 'underline' }}
-                >
-                  View on OpenStreetMap ↗
+                <a href={selectedAsset.osm_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', fontSize: 11.5, color: '#028C74', marginTop: 6 }}>
+                  Open in OpenStreetMap ↗
                 </a>
               )}
             </div>
@@ -472,96 +321,41 @@ export default function Infrastructure({ goTo }) {
         </div>
       </div>
 
-      {/* BOTTOM EXPOSED INFRASTRUCTURE LIST */}
+      {/* Asset list */}
       <div className="card">
         <div className="card-head">
-          <div>
-            <div className="card-title">OPENSTREETMAP INFRASTRUCTURE REGISTRY ({filteredAssets.length} ASSETS)</div>
-            <div className="card-subtitle">
-              Verified physical infrastructure mapped via OpenStreetMap within {radiusKm} km of {activeHub.name}
-            </div>
-          </div>
+          <div className="card-title">Assets ({filteredAssets.length})</div>
           <div style={{ display: 'flex', gap: 6 }}>
-            {['all', 'critical', 'moderate'].map((rf) => (
-              <button
-                key={rf}
-                className={`btn ${riskFilter === rf ? 'primary' : ''}`}
-                style={{ padding: '3px 10px', fontSize: 11, textTransform: 'capitalize' }}
-                onClick={() => setRiskFilter(rf)}
-              >
-                {rf}
+            {[['all', 'All'], ['critical', 'Within 2.2 km'], ['moderate', '2.2 – 4.8 km']].map(([rf, label]) => (
+              <button key={rf} className={`btn ${riskFilter === rf ? 'primary' : ''}`} style={{ padding: '3px 10px', fontSize: 11 }} onClick={() => setRiskFilter(rf)}>
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filteredAssets.map((asset) => (
-            <div 
-              key={asset.id}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 14px', borderRadius: 'var(--radius-md)',
-                background: selectedAssetId === asset.id ? 'var(--accent-glow)' : 'var(--surface-2)',
-                border: selectedAssetId === asset.id ? '1px solid var(--accent)' : '1px solid var(--border)',
-                cursor: 'pointer',
-              }}
-              onClick={() => flyToAsset(asset)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ 
-                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-                  padding: '3px 8px', borderRadius: 4, 
-                  background: 'var(--surface)', border: '1px solid var(--border)' 
-                }}>
-                  {asset.category === 'Hospital' ? '🏥' : asset.category === 'Road' ? '🛣️' : asset.category === 'School' ? '🏫' : asset.category === 'Bridge' ? '🌉' : '🚁'} {asset.category}
-                </span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
-                    {asset.name}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {asset.location} · <b>{asset.distance_km} km from hazard center</b> · {asset.exposure}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ 
-                  fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 11.5,
-                  color: asset.risk === 'danger' ? '#EF4444' : asset.risk === 'warning' ? '#D97706' : '#16A34A' 
-                }}>
-                  {asset.riskLabel}
-                </span>
-                {asset.osm_url && (
-                  <a
-                    href={asset.osm_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn"
-                    style={{ padding: '3px 8px', fontSize: 10.5 }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    OSM ↗
-                  </a>
-                )}
-                <button 
-                  className="btn" 
-                  style={{ padding: '3px 8px', fontSize: 11 }}
-                  onClick={(e) => { e.stopPropagation(); flyToAsset(asset); }}
-                >
-                  <IconMap width={12} height={12} /> Inspect
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {filteredAssets.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-              No infrastructure assets match the active category and risk filter.
-            </div>
-          )}
-        </div>
+        {filteredAssets.length === 0 ? (
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Nothing matches these filters.</div>
+        ) : (
+          <div style={{ maxHeight: 520, overflowY: 'auto' }}>
+            <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12.5 }}>
+              <thead><tr><th style={{ width: 120 }}>Type</th><th>Name</th><th style={{ width: 110 }}>Distance</th><th style={{ width: 70 }} /></tr></thead>
+              <tbody>
+                {filteredAssets.map((asset) => (
+                  <tr key={asset.id} onClick={() => flyToAsset(asset)}
+                    style={{ cursor: 'pointer', background: selectedAssetId === asset.id ? 'var(--surface-2)' : undefined }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{CAT_ICON[asset.category] || '🚁'} {asset.category}</td>
+                    <td><b>{asset.name}</b></td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: RING_COLOR[asset.risk] }}>{asset.distance_km} km</td>
+                    <td>{asset.osm_url && (
+                      <a href={asset.osm_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#028C74' }} onClick={(e) => e.stopPropagation()}>OSM ↗</a>
+                    )}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </div>
+        )}
       </div>
     </div>
   );

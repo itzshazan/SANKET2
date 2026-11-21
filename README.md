@@ -94,8 +94,10 @@ SANKET/
 ## 🚀 Quick Start: Running Frontend & Backend
 
 ### Prerequisites
-- **Python 3.9+** with `pip`
+- **Python 3.11+** with `pip` (tested on 3.14)
 - **Node.js 18+** with `npm`
+
+To put SANKET online (website on Vercel, API on Render), follow **[DEPLOY.md](DEPLOY.md)**.
 
 ---
 
@@ -104,15 +106,21 @@ SANKET/
 Open a terminal in the project root directory:
 
 ```bash
-pip install -r requirements.txt
-python -m uvicorn module1.api.main:app --host 0.0.0.0 --port 8000 --reload
+pip install -r requirements-dev.txt          # API + road-photo model + tests
+python -m module3.download_weights           # once: road-photo model, 237 MB
+python -m uvicorn module1.api.main:app --host 0.0.0.0 --port 8000 --reload --timeout-graceful-shutdown 5
 ```
+
+`requirements.txt` alone is enough to run the API (what a small server needs); `requirements-road.txt` adds the
+optional road-photo model.
 
 - **Backend Base URL:** [http://localhost:8000](http://localhost:8000)
 - **Interactive Swagger Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health Check Endpoint:** [http://localhost:8000/api/v1/module1/health](http://localhost:8000/api/v1/module1/health)
 
-**Free / zero-key mode:** no account or API key is required. Open-Meteo and OpenStreetMap are keyless, and the 3D globe uses free Esri/OSM imagery. To run with no internet at all, set `SANKET_OFFLINE=1` before starting the backend (PowerShell: `$env:SANKET_OFFLINE=1`) — it uses calibrated climatology and the bundled infrastructure seed data.
+**Real data only.** Rainfall, soil moisture (9–27 / 27–81 cm), temperature and wind come from Open-Meteo hourly data up to the latest completed hour. Terrain comes from the Copernicus GLO-30 DEM (AWS Open Data). NDVI comes from Sentinel-2 via the Copernicus Data Space, which needs `COPERNICUS_CLIENT_ID` and `COPERNICUS_CLIENT_SECRET` in `.env`. History uses ERA5 reanalysis, and infrastructure uses OpenStreetMap. When a source fails, the last real reading is shown and marked **stale** with its age. If no real reading exists, the value shows as **unavailable** and the hazard level as **unknown**. Nothing is simulated.
+
+**Hazard rule (until a model trained on real events exists):** published regional rainfall thresholds, configured in `module1/config/thresholds.json` with citations. Each district is evaluated at several hotspots and shows the worst one. Hotspots are rebuilt with `python -m module1.monitoring.hotspots`. To use the GSI susceptibility map instead of the DEM proxy, put a GSI GeoJSON in `module1/data/raw/gsi/`. To show past landslide counts, put a landslide inventory (NASA COOLR CSV or GSI GeoJSON) in `module1/data/raw/landslide/`.
 
 ---
 
@@ -128,7 +136,7 @@ npm run dev
 
 - **Web Dashboard URL:** [http://localhost:5180](http://localhost:5180) (or `http://localhost:5173`)
 
-> **Note:** The frontend has automatic fallback handling. It will seamlessly connect to the live ML backend when running, and gracefully fall back to local simulations if the backend is offline.
+> **Note:** The frontend has no built-in sample data. If the backend is not running, pages show "backend unreachable" instead of numbers.
 
 ---
 

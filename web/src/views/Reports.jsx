@@ -1,421 +1,148 @@
-import React, { useState } from 'react';
-import { 
-  IconFileText, IconMap, IconCloudRain, IconDroplet, 
-  IconMountain, IconBuilding, IconActivity, IconDownload 
-} from '../components/icons.jsx';
+import React, { useEffect, useState } from 'react';
+import HazardBadge from '../components/HazardBadge.jsx';
+import DataSourceBadge from '../components/DataSourceBadge.jsx';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
 import { module1Api } from '../services/module1Api.js';
+import { REGIONS, fmt, shortCite } from '../data/catalog.js';
+import { IconFileText } from '../components/icons.jsx';
 
-const REPORT_TYPES = [
-  { id: 'flood-risk', label: 'Landslide & Flood Risk Assessment', desc: 'Comprehensive hazard zonation, precipitation trigger analysis & susceptibility matrix' },
-  { id: 'environmental', label: 'Environmental Analysis', desc: 'NASA SMAP soil moisture profiles, GPM precipitation anomalies & vegetation health (NDVI)' },
-  { id: 'infra-impact', label: 'Infrastructure Impact', desc: 'Exposure audit of lifelines, road arteries, bridges, hospitals, and educational facilities' },
-  { id: 'historical', label: 'Historical Analysis & Backtesting', desc: 'Comparison of current precipitation events against verified ISRO disaster archives' },
-];
+function downloadCSV(filename, rows) {
+  const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
 
-const LOCATIONS = [
-  { id: 'wayanad', label: 'Wayanad District, Kerala (Western Ghats)', lat: 11.605, lon: 76.083, state: 'Kerala', normalRain: 15.0, triggerRain: 60.0, criticalAssets: 28 },
-  { id: 'rudraprayag', label: 'Rudraprayag District, Uttarakhand (NW Himalayas)', lat: 30.285, lon: 78.981, state: 'Uttarakhand', normalRain: 18.0, triggerRain: 50.0, criticalAssets: 34 },
-  { id: 'noney', label: 'Noney District, Manipur (North Eastern Region)', lat: 24.810, lon: 93.600, state: 'Manipur', normalRain: 20.0, triggerRain: 55.0, criticalAssets: 19 },
-  { id: 'mandi', label: 'Mandi District, Himachal Pradesh (NW Himalayas)', lat: 31.589, lon: 76.918, state: 'Himachal Pradesh', normalRain: 14.0, triggerRain: 45.0, criticalAssets: 22 },
-  { id: 'chamoli', label: 'Chamoli District, Uttarakhand (NW Himalayas)', lat: 30.410, lon: 79.330, state: 'Uttarakhand', normalRain: 16.0, triggerRain: 48.0, criticalAssets: 31 },
-  { id: 'raigad', label: 'Raigad District, Maharashtra (Western Ghats)', lat: 18.235, lon: 73.445, state: 'Maharashtra', normalRain: 25.0, triggerRain: 70.0, criticalAssets: 26 },
-];
+// Situation report built only from live API data. Every number shows its source; missing
+// values print as "—" instead of being filled in.
+export default function Reports({ selection, selectDistrict }) {
+  const live = useLiveDistricts();
+  const districtId = selection?.districtId && live.byId[selection.districtId] ? selection.districtId : (live.list[0]?.id || null);
+  const [detail, setDetail] = useState(null);
+  const [infra, setInfra] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-export default function Reports() {
-  const [reportType, setReportType] = useState('flood-risk');
-  const [locationId, setLocationId] = useState('wayanad');
-  const [startDate, setStartDate] = useState('2026-08-01');
-  const [endDate, setEndDate] = useState('2026-09-06');
-  const [layers, setLayers] = useState({
-    rainfall: true,
-    soil: true,
-    terrain: true,
-    infra: true,
-  });
+  useEffect(() => {
+    if (!districtId) return undefined;
+    let alive = true;
+    const d = live.byId[districtId];
+    setLoading(true); setDetail(null); setInfra(null);
+    Promise.all([module1Api.getDistrictDetail(districtId), module1Api.getInfrastructure(d.lat, d.lon, d.name, 6.0)])
+      .then(([det, inf]) => { if (alive) { setDetail(det); setInfra(inf); setLoading(false); } });
+    return () => { alive = false; };
+  }, [districtId]);
 
-  const [generating, setGenerating] = useState(false);
-  const [generatedReport, setGeneratedReport] = useState(false);
-  const [reportData, setReportData] = useState(null);
-
-  function toggleLayer(l) {
-    setLayers((prev) => ({ ...prev, [l]: !prev[l] }));
-  }
-
-  const selectedLoc = LOCATIONS.find((l) => l.id === locationId) || LOCATIONS[0];
-  const selectedType = REPORT_TYPES.find((r) => r.id === reportType) || REPORT_TYPES[0];
-
-  async function handleGenerate() {
-    setGenerating(true);
-    try {
-      const res = await module1Api.getEnvironment(selectedLoc.lat, selectedLoc.lon, selectedLoc.label);
-      setReportData(res);
-      setGeneratedReport(true);
-    } catch {
-      // Fallback
-      setReportData({
-        latitude: selectedLoc.lat,
-        longitude: selectedLoc.lon,
-        risk_probability: 0.82,
-        risk_level: 'danger',
-        risk_score: 82,
-        telemetry: {
-          rainfall_24h: 42.8,
-          rainfall_72h: 88.5,
-          rainfall_7d: 142.0,
-          soil_moisture: 0.72,
-          temperature: 24.5,
-          wind_speed: 14.0,
-          elevation: 1420,
-          slope: 34.0,
-          historical_landslide_count: 22,
-        },
-      });
-      setGeneratedReport(true);
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  function printReport() {
-    window.print();
-  }
+  const d = detail;
+  const w = d?.weather || {};
+  const ev = d?.evaluation;
+  const generated = new Date();
 
   function exportCSV() {
-    if (!reportData) return;
-    const t = reportData.telemetry || {};
-    const rf24 = t.rainfall_24h ?? 42.8;
-    const rf72 = t.rainfall_72h ?? 88.5;
-    const rf7d = t.rainfall_7d ?? 142.0;
-    const soilPct = Math.round((t.soil_moisture ?? 0.72) * 100);
-    const elev = t.elevation ?? 1420;
-    const slope = t.slope ?? 34.0;
-    const isroCount = t.historical_landslide_count ?? 22;
-    const score = reportData.risk_score ?? 82;
-    const level = (reportData.risk_level ?? 'high').toUpperCase();
-
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "Parameter,Value,Data Source,Status\n"
-      + `Location,"${selectedLoc.label}",Administrative,Monitored\n`
-      + `Coordinates,"${selectedLoc.lat} N ${selectedLoc.lon} E",Copernicus WGS84,Verified\n`
-      + `Report Type,"${selectedType.label}",SANKET Engine,Approved\n`
-      + `Evaluation Window,"${startDate} to ${endDate}",Temporal,Processed\n`
-      + `24H Rainfall,"${rf24} mm",NASA GPM IMERG / ERA5,${rf24 > selectedLoc.triggerRain ? 'Trigger Exceeded' : 'Monitored'}\n`
-      + `72H Rainfall,"${rf72} mm",NASA GPM IMERG / ERA5,Accumulated\n`
-      + `7D Rainfall,"${rf7d} mm",NASA GPM IMERG / ERA5,Accumulated\n`
-      + `Soil Moisture,"${soilPct}% VWC",NASA SMAP L3,${soilPct > 70 ? 'Near Saturation' : 'Normal'}\n`
-      + `DEM Elevation,"${elev} m",Copernicus DEM 30m,Surface Elevation\n`
-      + `Slope Gradient,"${slope} degrees",Copernicus DEM 30m,${slope > 28 ? 'High Susceptibility' : 'Moderate'}\n`
-      + `ISRO Landslide Count,"${isroCount} records",ISRO National Landslide Atlas 2023,Cataloged\n`
-      + `Critical Infrastructure Exposed,"${selectedLoc.criticalAssets} assets",OpenStreetMap Vector Audit,Monitored\n`
-      + `Overall Risk Score,"${score} / 100",XGBoost v1.0,${level}\n`;
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `SANKET_Report_${locationId}_${endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (!d) return;
+    const rows = [['Field', 'Value', 'Source']];
+    rows.push(['District', `${d.name}, ${d.state}`, 'SANKET registry']);
+    rows.push(['Level', d.level, 'Published rainfall threshold rule']);
+    rows.push(['Rain / threshold', d.ratio, ev?.region?.citation]);
+    rows.push(['Governing window (h)', d.governing_window?.hours, '']);
+    ['1', '6', '24', '72', '168'].forEach((k) => rows.push([`Rain ${k} h (mm)`, w.rain_mm?.[k], w.source]));
+    rows.push(['Soil 7-28 cm (m3/m3)', w.soil_moisture_7_28cm, w.source]);
+    rows.push(['Soil 28-100 cm (m3/m3)', w.soil_moisture_28_100cm, w.source]);
+    rows.push(['Weather data status', d.weather_status, `window ends ${w.window_end_utc}`]);
+    const govH = d.hotspots.find((h) => h.id === d.governing_hotspot) || d.hotspots[0];
+    const hist = govH?.landslide_history;
+    if (hist?.status === 'live') rows.push([`Recorded landslides within ${hist.radius_km} km of ${govH.id}`, hist.count, Object.entries(hist.by_source || {}).map(([k, n]) => `${k}: ${n}`).join('; ')]);
+    d.hotspots.forEach((h) => rows.push([`Hotspot ${h.id}`, `${h.level} ${h.ratio ?? ''}x; slope ${h.terrain?.slope_deg ?? ''} deg; NDVI ${h.vegetation?.ndvi ?? 'n/a'}`, `${h.lat},${h.lon}`]));
+    if (infra?.status && infra.status !== 'unavailable') {
+      Object.entries(infra.by_category || {}).forEach(([k, v]) => rows.push([`OSM ${k} within ${infra.radius_km} km`, v, 'OpenStreetMap Overpass']));
+    }
+    rows.push(['Generated', generated.toISOString(), 'SANKET']);
+    downloadCSV(`sanket-sitrep-${d.id}-${generated.toISOString().slice(0, 10)}.csv`, rows);
   }
 
-  const t = reportData?.telemetry || {};
-  const rf24 = t.rainfall_24h ?? 42.8;
-  const rf72 = t.rainfall_72h ?? 88.5;
-  const rf7d = t.rainfall_7d ?? 142.0;
-  const soilPct = Math.round((t.soil_moisture ?? 0.72) * 100);
-  const elev = t.elevation ?? 1420;
-  const slope = t.slope ?? 34.0;
-  const isroCount = t.historical_landslide_count ?? 22;
-  const score = reportData ? reportData.risk_score : 82;
-  const level = reportData ? reportData.risk_level.toUpperCase() : 'HIGH';
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 09. REPORTS PAGE — HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            REPORTS & INTELLIGENCE DOSSIERS
-          </h1>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            Generate and export verified disaster risk assessments from multi-source satellite telemetry
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="no-print" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div className="toolbar-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <select className="select-control" style={{ fontWeight: 700, height: 32 }} value={districtId || ''} onChange={(e) => selectDistrict?.(e.target.value)}>
+            {REGIONS.map((r) => (
+              <optgroup key={r} label={r}>{live.list.filter((x) => x.region === r).map((x) => <option key={x.id} value={x.id}>{x.name}, {x.state}</option>)}</optgroup>
+            ))}
+          </select>
+          <button className="btn" onClick={exportCSV} disabled={!d}>Export CSV</button>
+          <button className="btn primary" onClick={() => window.print()} disabled={!d}>Print / PDF</button>
         </div>
-
-        {generatedReport && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" onClick={exportCSV} style={{ fontSize: 12 }}>
-              <IconDownload width={14} height={14} /> Export CSV Dataset
-            </button>
-            <button className="btn primary" onClick={printReport} style={{ fontSize: 12 }}>
-              <IconFileText width={14} height={14} /> Print / Save PDF
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* CONFIGURATION PANEL (BLUEPRINT SECTION 09) */}
-      <div className="card" style={{ padding: '16px 20px', background: 'var(--surface-1)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* 1. REPORT TYPE RADIO-CARD SELECTOR */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 8 }}>
-              1 · SELECT REPORT TYPE
+      {loading && <div className="card" style={{ padding: 14 }}>Preparing report…</div>}
+      {!loading && districtId && !d && <div className="card" style={{ padding: 14, color: 'var(--hazard-danger)' }}>Live district detail unavailable.</div>}
+
+      {d && (
+        <div className="card" style={{ padding: 22, lineHeight: 1.6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.08em' }}>SANKET LANDSLIDE SITUATION REPORT</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{d.name}, {d.state}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Generated {generated.toLocaleString()} · rain up to {w.window_end_utc ? new Date(w.window_end_utc).toLocaleString() : '—'}</div>
             </div>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-              {REPORT_TYPES.map((type) => {
-                const active = reportType === type.id;
-                return (
-                  <div 
-                    key={type.id}
-                    onClick={() => setReportType(type.id)}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: active ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                      background: active ? 'var(--surface-2)' : 'transparent',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <input 
-                        type="radio" 
-                        name="report-type" 
-                        checked={active} 
-                        onChange={() => setReportType(type.id)}
-                        style={{ accentColor: 'var(--accent)' }}
-                      />
-                      <span style={{ fontWeight: 700, fontSize: 12.5, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>
-                        {type.label}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, paddingLeft: 22 }}>
-                      {type.desc}
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ textAlign: 'right' }}>
+              <HazardBadge level={d.level} />
+              <div style={{ marginTop: 6 }}><DataSourceBadge compact status={d.weather_status} source={w.source} ageMinutes={w.age_minutes} /></div>
             </div>
           </div>
 
-          <div className="divider" style={{ margin: '4px 0' }} />
+          <p style={{ fontSize: 13 }}>
+            {typeof d.ratio === 'number' && d.ratio === 0 ? <>No rain has fallen at any of the {d.hotspots.length} monitored hotspots in the last 10 days. Level: <b>NORMAL</b>.</> : typeof d.ratio === 'number' && d.governing_window ? (
+              <>The worst of {d.hotspots.length} monitored hotspots has received <b>{d.governing_window?.rain_mm} mm in the last {d.governing_window?.hours} h</b>,
+                which is <b>{d.ratio.toFixed(2)}×</b> the published threshold for this region ({d.governing_window?.threshold_mm} mm).
+                Level: <b>{d.level.toUpperCase()}</b>.</>
+            ) : <>Rainfall data is currently unavailable for this district, so no hazard level can be given.</>}
+          </p>
 
-          {/* 2. LOCATION & DATE RANGE */}
-          <div className="grid" style={{ gridTemplateColumns: '1.2fr 1fr', gap: 14 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 6 }}>
-                2 · LOCATION
-              </div>
-              <select 
-                className="select-control" 
-                style={{ width: '100%', fontSize: 13 }}
-                value={locationId}
-                onChange={(e) => {
-                  setLocationId(e.target.value);
-                  setGeneratedReport(false);
-                }}
-              >
-                {LOCATIONS.map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 6 }}>
-                3 · DATE RANGE
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input 
-                  type="date" 
-                  className="input-control" 
-                  value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)} 
-                  style={{ flex: 1 }}
-                />
-                <span style={{ color: 'var(--text-dim)' }}>→</span>
-                <input 
-                  type="date" 
-                  className="input-control" 
-                  value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)} 
-                  style={{ flex: 1 }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="divider" style={{ margin: '4px 0' }} />
-
-          {/* 3. DATA LAYERS CHECKBOXES */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 8 }}>
-              4 · DATA LAYERS
-            </div>
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              {[
-                { id: 'rainfall', label: 'Rainfall (NASA GPM / ERA5)', icon: IconCloudRain },
-                { id: 'soil', label: 'Soil Moisture (NASA SMAP / VWC)', icon: IconDroplet },
-                { id: 'terrain', label: 'Terrain / Slope (Copernicus DEM 30m)', icon: IconMountain },
-                { id: 'infra', label: 'Infrastructure (OpenStreetMap Vectors)', icon: IconBuilding },
-              ].map((layer) => (
-                <label key={layer.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={layers[layer.id]} 
-                    onChange={() => toggleLayer(layer.id)} 
-                  />
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{layer.label}</span>
-                </label>
+          <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12.5 }}>
+            <thead><tr><th>Indicator</th><th>Value</th></tr></thead>
+            <tbody>
+              {['1', '6', '24', '72', '168'].map((k) => (
+                <tr key={k}><td>Rain, last {k === '168' ? '7 days' : `${k} h`}</td><td>{fmt(w.rain_mm?.[k], 1, ' mm')}</td></tr>
               ))}
-            </div>
-          </div>
+              <tr><td>Soil moisture 7-28 cm</td><td>{fmt(w.soil_moisture_7_28cm, 3, ' m³/m³')}</td></tr>
+              <tr><td>Soil moisture 28-100 cm</td><td>{fmt(w.soil_moisture_28_100cm, 3, ' m³/m³')}</td></tr>
+              <tr><td>Rainfall threshold</td><td>{ev?.region?.label} ({shortCite(ev?.region?.citation)})</td></tr>
+              {(() => {
+                const gov = d.hotspots.find((h) => h.id === d.governing_hotspot) || d.hotspots[0];
+                const hist = gov?.landslide_history;
+                return (
+                  <tr><td>Past landslides within {hist?.radius_km ?? 10} km</td>
+                    <td>{hist?.status === 'live' ? `${hist.count}${hist.latest_year ? ` (latest ${hist.latest_year})` : ''}` : '—'}</td></tr>
+                );
+              })()}
+            </tbody>
+          </table></div>
 
-          {/* Action Button */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
-            <button 
-              className="btn primary" 
-              style={{ minWidth: 240, justifyContent: 'center', fontSize: 13, padding: '8px 24px' }}
-              onClick={handleGenerate}
-              disabled={generating}
-            >
-              {generating ? 'Querying Live Multi-Sensor Telemetry...' : 'Generate Dynamic Report'}
-            </button>
-          </div>
-        </div>
-      </div>
+          <div style={{ fontWeight: 800, marginTop: 16 }}>Hotspots</div>
+          <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12 }}>
+            <thead><tr><th>Hotspot</th><th>Level</th><th>Rain ÷ threshold</th><th>Slope</th><th>Elevation</th><th>NDVI</th></tr></thead>
+            <tbody>
+              {d.hotspots.map((h) => (
+                <tr key={h.id}>
+                  <td>{h.id}</td><td><HazardBadge level={h.level} size="sm" /></td>
+                  <td>{fmt(h.ratio, 2, '×')}</td><td>{fmt(h.terrain?.slope_deg, 1, '°')}</td><td>{fmt(h.terrain?.elevation_m, 0, ' m')}</td>
+                  <td>{h.vegetation?.status === 'unavailable' ? '—' : fmt(h.vegetation?.ndvi, 2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
 
-      {/* GENERATED INTELLIGENCE REPORT DOSSIER PREVIEW */}
-      {generatedReport && reportData && (
-        <div className="card" style={{ maxWidth: 900, border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          {/* Report Header */}
-          <div style={{ 
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-            borderBottom: '2px solid var(--text-primary)', paddingBottom: 14, marginBottom: 16 
-          }}>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-                SANKET GEOSPATIAL INTELLIGENCE DOSSIER
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
-                National Landslide & Environmental Risk Monitoring System · Ministry of Mines / NDMA Framework
-              </div>
+          <div style={{ fontWeight: 800, marginTop: 16 }}>Infrastructure within {infra?.radius_km ?? 6} km of the district centre</div>
+          {!infra || infra.status === 'unavailable' ? (
+            <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>OpenStreetMap unavailable{infra?.reason ? `: ${infra.reason}` : ''}.</div>
+          ) : (
+            <div style={{ fontSize: 12.5 }}>
+              {Object.entries(infra.by_category || {}).map(([k, v]) => `${v} ${k}`).join(' · ') || 'No tagged assets found'}
+              {' '}({infra.high_risk_count} within {infra.proximity_bands_km?.[0] ?? 2.2} km){infra.status === 'stale' ? ' — last real OSM response' : ''}
             </div>
-            <div style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)' }}>
-              <div>REF: SNK-2026-REP-{locationId.toUpperCase()}</div>
-              <div>ISSUED: {new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}</div>
-            </div>
-          </div>
-
-          {/* Key Overview Metadata */}
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-            <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Target Assessment</div>
-              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2 }}>{selectedType.label}</div>
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Geographic Sector</div>
-              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2 }}>{selectedLoc.label.split('(')[0]}</div>
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Assessment Window</div>
-              <div style={{ fontWeight: 700, fontSize: 12.5, fontFamily: 'var(--font-mono)', marginTop: 2 }}>{startDate} to {endDate}</div>
-            </div>
-            <div style={{ 
-              padding: '10px 12px', 
-              background: score >= 75 ? 'var(--hazard-danger-wash)' : (score >= 50 ? 'var(--hazard-warning-wash)' : 'var(--surface-2)'), 
-              border: `1px solid ${score >= 75 ? 'var(--hazard-danger)' : (score >= 50 ? 'var(--hazard-warning)' : 'var(--border)')}`, 
-              borderRadius: 'var(--radius-md)' 
-            }}>
-              <div style={{ fontSize: 11, color: score >= 75 ? 'var(--hazard-danger)' : (score >= 50 ? 'var(--hazard-warning)' : 'var(--text-muted)'), fontWeight: 700 }}>
-                COMPOSITE RISK
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: score >= 75 ? 'var(--hazard-danger)' : (score >= 50 ? 'var(--hazard-warning)' : 'var(--text-primary)'), fontFamily: 'var(--font-mono)', marginTop: 1 }}>
-                {score} / 100 · {level}
-              </div>
-            </div>
-          </div>
-
-          {/* Section: Executive Summary */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 4, marginBottom: 8 }}>
-              1. EXECUTIVE SITUATION SUMMARY
-            </div>
-            <p style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.6, margin: 0 }}>
-              Analysis of multi-sensor satellite telemetry over <b>{selectedLoc.label}</b> (Coordinates: {selectedLoc.lat}°N, {selectedLoc.lon}°E) indicates a composite landslide susceptibility score of <b>{score}/100 ({level})</b>. Consecutive 24-hour rainfall stands at <b>{rf24} mm</b> (72h accumulation: <b>{rf72} mm</b>, 7-day accumulation: <b>{rf7d} mm</b>). Copernicus DEM 30m topography records an elevation of <b>{elev.toLocaleString()} m</b> with a finite-difference slope gradient of <b>{slope}°</b>. Soil volumetric water content registers <b>{soilPct}%</b> saturation, with <b>{isroCount}</b> historical landslide events cataloged in the ISRO National Landslide Atlas for this sector.
-            </p>
-          </div>
-
-          {/* Section: Telemetry Data Table */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 4, marginBottom: 8 }}>
-              2. INGESTED TELEMETRY & MULTI-CRITERIA FACTOR MATRIX
-            </div>
-            <table className="data-table" style={{ width: '100%', fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th>Data Source</th>
-                  <th>Observed Value</th>
-                  <th>Baseline Normal</th>
-                  <th>Trigger Threshold</th>
-                  <th>Risk Contribution</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><b>NASA GPM IMERG / ERA5 Blended</b></td>
-                  <td style={{ fontFamily: 'var(--font-mono)', color: rf24 > selectedLoc.triggerRain ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>
-                    {rf24} mm (24H) · {rf7d} mm (7D)
-                  </td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{selectedLoc.normalRain} mm</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{selectedLoc.triggerRain} mm</td>
-                  <td><b style={{ color: rf24 > selectedLoc.triggerRain ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>{rf24 > selectedLoc.triggerRain ? 'Critical' : 'Elevated'}</b></td>
-                </tr>
-                <tr>
-                  <td><b>NASA SMAP L3 Radiometer</b></td>
-                  <td style={{ fontFamily: 'var(--font-mono)', color: soilPct > 70 ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>
-                    {soilPct}% Saturation ({t.soil_moisture ?? 0.35} m³/m³)
-                  </td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>35%</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>70%</td>
-                  <td><b style={{ color: soilPct > 70 ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>{soilPct > 70 ? 'High Saturation' : 'Moderate'}</b></td>
-                </tr>
-                <tr>
-                  <td><b>Copernicus DEM 30m GLO-30</b></td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{slope}° Gradient / {elev.toLocaleString()}m</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>15° - 20°</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>28° Critical</td>
-                  <td><b style={{ color: slope > 28 ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>{slope > 28 ? 'High Slope Shear' : 'Stable'}</b></td>
-                </tr>
-                <tr>
-                  <td><b>ISRO Landslide Atlas of India</b></td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{isroCount} Historical Events Recorded</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>0 - 5 Events</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>15 Events</td>
-                  <td><b style={{ color: isroCount > 15 ? 'var(--hazard-danger)' : 'var(--hazard-warning)' }}>{isroCount > 15 ? 'High Historic Density' : 'Moderate'}</b></td>
-                </tr>
-                <tr>
-                  <td><b>OpenStreetMap Vector Audit</b></td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{selectedLoc.criticalAssets} Critical Assets Monitored</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>0 Exposed</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>5 Assets</td>
-                  <td><b style={{ color: 'var(--hazard-warning)' }}>Elevated Exposure</b></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Section: Operational Recommendations */}
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: 4, marginBottom: 8 }}>
-              3. ACTIONABLE ADVISORY & MITIGATION DIRECTIVES
-            </div>
-            <ul style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.7, margin: 0, paddingLeft: 18 }}>
-              <li><b>Evacuation Pre-Positioning:</b> {score >= 75 ? 'Initiate immediate targeted evacuations for vulnerable settlements along toe slopes and riverbanks.' : 'Maintain standby status for emergency response teams in designated disaster relief shelters.'}</li>
-              <li><b>Traffic & Lifeline Control:</b> {slope > 25 || rf24 > 40 ? 'Implement strict transit restrictions on arterial hill corridors during nocturnal rain peaks.' : 'Monitor arterial highways for minor debris slips and maintain clear drain culverts.'}</li>
-              <li><b>Automated Telemetry Vigilance:</b> Maintain active SANKET GIS monitoring with real-time early warning thresholds connected to district disaster management authorities.</li>
-            </ul>
+          )}
+          <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 14 }}>
+            Sources: rainfall and soil moisture from ECMWF IFS via Open-Meteo (weather-model values, not rain gauges) · terrain from Copernicus GLO-30 · vegetation from Sentinel-2 · infrastructure from OpenStreetMap.
           </div>
         </div>
       )}

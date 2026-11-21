@@ -1,0 +1,255 @@
+{
+ "name": "SANKET landslide confidence v1",
+ "trained_at": "2026-11-20T15:44:51.217246+00:00",
+ "algorithm": "Gradient-boosted trees (scikit-learn HistGradientBoosting, monotone in rain and soil moisture), isotonic calibration",
+ "features": [
+  "rain_1h",
+  "rain_3h",
+  "rain_6h",
+  "rain_12h",
+  "rain_24h",
+  "rain_48h",
+  "rain_72h",
+  "rain_120h",
+  "rain_168h",
+  "rain_240h",
+  "max_hourly_rain_24h",
+  "soil_7_28",
+  "soil_28_100",
+  "soil_7_28_change_72h",
+  "temp_mean_24h",
+  "wind_max_24h",
+  "elevation_m",
+  "relief_550m_m",
+  "gradient_550m_deg"
+ ],
+ "feature_labels": {
+  "rain_1h": "Rain, last 1 h",
+  "rain_3h": "Rain, last 3 h",
+  "rain_6h": "Rain, last 6 h",
+  "rain_12h": "Rain, last 12 h",
+  "rain_24h": "Rain, last 24 h",
+  "rain_48h": "Rain, last 48 h",
+  "rain_72h": "Rain, last 72 h",
+  "rain_120h": "Rain, last 120 h",
+  "rain_168h": "Rain, last 168 h",
+  "rain_240h": "Rain, last 240 h",
+  "max_hourly_rain_24h": "Max hourly rain (24 h)",
+  "soil_7_28": "Soil moisture 7-28 cm",
+  "soil_28_100": "Soil moisture 28-100 cm",
+  "soil_7_28_change_72h": "Soil wetting, last 72 h",
+  "temp_mean_24h": "Temperature (24 h mean)",
+  "wind_max_24h": "Max wind (24 h)",
+  "elevation_m": "Elevation",
+  "relief_550m_m": "Relief over ~550 m",
+  "gradient_550m_deg": "Hillside gradient (~550 m)"
+ },
+ "groups": {
+  "Rainfall": [
+   "rain_1h",
+   "rain_3h",
+   "rain_6h",
+   "rain_12h",
+   "rain_24h",
+   "rain_48h",
+   "rain_72h",
+   "rain_120h",
+   "rain_168h",
+   "rain_240h",
+   "max_hourly_rain_24h"
+  ],
+  "Soil moisture": [
+   "soil_7_28",
+   "soil_28_100",
+   "soil_7_28_change_72h"
+  ],
+  "Terrain": [
+   "elevation_m",
+   "relief_550m_m",
+   "gradient_550m_deg"
+  ],
+  "Temperature & wind": [
+   "temp_mean_24h",
+   "wind_max_24h"
+  ]
+ },
+ "reference_non_event": {
+  "rain_1h": 0.0,
+  "rain_3h": 0.0,
+  "rain_6h": 0.0,
+  "rain_12h": 0.65,
+  "rain_24h": 1.3,
+  "rain_48h": 3.7,
+  "rain_72h": 6.6,
+  "rain_120h": 13.3,
+  "rain_168h": 20.8,
+  "rain_240h": 33.9,
+  "max_hourly_rain_24h": 0.4,
+  "soil_7_28": 0.367,
+  "soil_28_100": 0.371,
+  "soil_7_28_change_72h": -0.002,
+  "temp_mean_24h": 24.07,
+  "wind_max_24h": 8.9,
+  "elevation_m": 639.0,
+  "relief_550m_m": 74.0,
+  "gradient_550m_deg": 8.13
+ },
+ "training_data": {
+  "positives_description": "India, rainfall-triggered, dated: NASA Global Landslide Catalog 2007-2016 and NASA COOLR reports (location accuracy <= 5 km), Kerala 2018 monsoon inventory (Univ. Twente / GSI, DANS, CC-BY-4.0) and NASA COOLR Himachal July 2023 inventory, thinned to one point per ~5 km cell",
+  "positives_by_source": {
+   "coolr_event": 28,
+   "coolr_report": 241,
+   "glc_2016": 531,
+   "kerala_2018": 150
+  },
+  "years": "2007-2024",
+  "negatives": "same place on 3 other days without a catalogued landslide (25 km / 7 days), and 1 random point in India on the same day",
+  "weather": "ERA5 hourly via Open-Meteo archive (live inference uses ECMWF IFS, same soil layers)",
+  "terrain": "Copernicus GLO-90 elevation (Open-Meteo) at the point and ~550 m north and east",
+  "samples": 4750,
+  "positives": 950
+ },
+ "meaning_of_confidence": "Calibrated probability that a landslide is recorded within ~5 km on that day, for cases mixed like the training set (1 landslide day per 4 non-landslide days). Real landslide days are far rarer, so read it as a relative alarm level and use the validated hit / false-alarm table.",
+ "limitations": [
+  "The catalogue is news-based: remote landslides are under-reported, so some negatives are really landslide days.",
+  "ERA5 (~25 km) underestimates local cloudbursts; some events had little ERA5 rain.",
+  "Locations are accurate to ~1-5 km, so terrain is described at ~0.5 km scale, not the exact slope.",
+  "Events after 2018 are sparse in public catalogues; Kerala 2018 events are dated to the 16 Aug peak (exact day unknown)."
+ ],
+ "evaluation": {
+  "time_split": {
+   "train": "2007-2016",
+   "test": "2017-2024",
+   "model": {
+    "n": 1375,
+    "positives": 398,
+    "roc_auc": 0.895,
+    "pr_auc": 0.833,
+    "brier": 0.1126
+   },
+   "threshold_rule_baseline": {
+    "n": 1375,
+    "positives": 398,
+    "roc_auc": 0.874,
+    "pr_auc": 0.787
+   },
+   "hard_when_same_place": {
+    "model": {
+     "n": 977,
+     "positives": 398,
+     "roc_auc": 0.897,
+     "pr_auc": 0.881,
+     "brier": 0.144
+    },
+    "threshold_rule": {
+     "n": 977,
+     "positives": 398,
+     "roc_auc": 0.9,
+     "pr_auc": 0.885
+    }
+   },
+   "where_same_day_elsewhere": {
+    "model": {
+     "n": 796,
+     "positives": 398,
+     "roc_auc": 0.891,
+     "pr_auc": 0.909,
+     "brier": 0.1681
+    },
+    "threshold_rule": {
+     "n": 796,
+     "positives": 398,
+     "roc_auc": 0.837,
+     "pr_auc": 0.849
+    }
+   },
+   "model_operating_points": [
+    {
+     "at": 0.2,
+     "hit_rate": 0.834,
+     "false_alarm_rate": 0.199,
+     "precision": 0.631,
+     "alarms": 526
+    },
+    {
+     "at": 0.35,
+     "hit_rate": 0.719,
+     "false_alarm_rate": 0.099,
+     "precision": 0.747,
+     "alarms": 383
+    },
+    {
+     "at": 0.5,
+     "hit_rate": 0.608,
+     "false_alarm_rate": 0.042,
+     "precision": 0.855,
+     "alarms": 283
+    },
+    {
+     "at": 0.65,
+     "hit_rate": 0.372,
+     "false_alarm_rate": 0.004,
+     "precision": 0.974,
+     "alarms": 152
+    },
+    {
+     "at": 0.8,
+     "hit_rate": 0.053,
+     "false_alarm_rate": 0.0,
+     "precision": 1.0,
+     "alarms": 21
+    }
+   ],
+   "threshold_rule_operating_points": [
+    {
+     "at": 1.0,
+     "hit_rate": 0.917,
+     "false_alarm_rate": 0.464,
+     "precision": 0.446,
+     "alarms": 818
+    },
+    {
+     "at": 2.0,
+     "hit_rate": 0.794,
+     "false_alarm_rate": 0.231,
+     "precision": 0.583,
+     "alarms": 542
+    },
+    {
+     "at": 4.0,
+     "hit_rate": 0.616,
+     "false_alarm_rate": 0.069,
+     "precision": 0.785,
+     "alarms": 312
+    }
+   ]
+  },
+  "state_split_cv": {
+   "folds": 5,
+   "roc_auc_mean": 0.877,
+   "roc_auc_min": 0.835,
+   "roc_auc_max": 0.953
+  },
+  "feature_importance_test_auc_drop": {
+   "rain_48h": 0.0426,
+   "gradient_550m_deg": 0.0118,
+   "elevation_m": 0.0097,
+   "wind_max_24h": 0.0067,
+   "rain_120h": 0.0056,
+   "rain_168h": 0.0049,
+   "rain_240h": 0.0046,
+   "rain_72h": 0.0042,
+   "rain_12h": 0.0032,
+   "rain_24h": 0.0031,
+   "relief_550m_m": 0.0029,
+   "soil_28_100": 0.0027,
+   "max_hourly_rain_24h": 0.0007,
+   "rain_1h": 0.0006,
+   "rain_6h": 0.0004,
+   "soil_7_28_change_72h": 0.0002,
+   "soil_7_28": -0.0,
+   "rain_3h": -0.0002,
+   "temp_mean_24h": -0.0018
+  }
+ }
+}

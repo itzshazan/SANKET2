@@ -1,118 +1,44 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { module1Api } from '../services/module1Api.js';
 import HazardBadge from '../components/HazardBadge.jsx';
-import { ALERTS, ALERT_AUDIENCES, ALERT_LANGUAGES, ALERT_TEMPLATES, ZONES, DISTRICTS } from '../data/mockData.js';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
 import { IconBell, IconMap, IconInfo, IconActivity, IconAlertTriangle } from '../components/icons.jsx';
 
-const INCIDENTS_DATA = [
-  {
-    id: 'inc-01',
-    severity: 'critical',
-    severityLabel: 'CRITICAL',
-    timeAgo: '12 MIN AGO',
-    title: 'HIGH DEBRIS FLOW & MASS COLLAPSE PROBABILITY',
-    location: 'Wayanad District (Meppadi / Chooralmala), Kerala',
-    districtId: 'wayanad',
-    factors: 'Rainfall (42.8mm/hr) + Soil Saturation (94%) + Steep Escarpment (34°)',
-    summary: 'Continuous monsoon rainfall has exceeded critical threshold on tea estate slopes. High probability of debris flow towards valley settlements.',
-    status: 'active',
-    statusLabel: 'Active Incident',
-    recipients: 420,
-  },
-  {
-    id: 'inc-02',
-    severity: 'critical',
-    severityLabel: 'CRITICAL',
-    timeAgo: '28 MIN AGO',
-    title: 'EXTREME RAINFALL DETECTED & FLASH FLOOD TRIGGER',
-    location: 'Rudraprayag District (Kedarnath Valley), Uttarakhand',
-    districtId: 'rudraprayag',
-    factors: 'Cloudburst Rainfall (68mm) + Glacial Moraine Instability + River Siltation',
-    summary: 'Cloudburst pulse recorded near upper catchment. NH-107 pilgrimage corridor is flagged for immediate vehicular holding.',
-    status: 'active',
-    statusLabel: 'Active Incident',
-    recipients: 680,
-  },
-  {
-    id: 'inc-03',
-    severity: 'high',
-    severityLabel: 'HIGH',
-    timeAgo: '45 MIN AGO',
-    title: 'CUT-SLOPE DESTABILIZATION & HIGHWAY SEVERANCE',
-    location: 'Noney District (Tupul Section), Manipur',
-    districtId: 'noney',
-    factors: 'Sustained Monsoon Inundation + Excavated Railway Embankment',
-    summary: 'Tupul railway yard approach exhibits tension cracks and active toe seepages. Immediate slope geotechnical stabilization alert issued.',
-    status: 'monitoring',
-    statusLabel: 'Under Monitoring',
-    recipients: 190,
-  },
-  {
-    id: 'inc-04',
-    severity: 'moderate',
-    severityLabel: 'MODERATE',
-    timeAgo: '2 HOURS AGO',
-    title: 'SLOPE TENSION CRACK ADVISORY',
-    location: 'Mandi District (Beas Basin Corridor), Himachal Pradesh',
-    districtId: 'mandi',
-    factors: 'Moderate Rainfall (32mm) + River Toe Erosion',
-    summary: 'Local monitoring sensors detect minor acoustic emissions and displacement along village bypass road.',
-    status: 'monitoring',
-    statusLabel: 'Under Monitoring',
-    recipients: 120,
-  },
-  {
-    id: 'inc-05',
-    severity: 'moderate',
-    severityLabel: 'RESOLVED',
-    timeAgo: '4 HOURS AGO',
-    title: 'DEBRIS REMOVAL CLEARED — TRAFFIC RESTORED',
-    location: 'Raigad District (Mahad Section), Maharashtra',
-    districtId: 'raigad',
-    factors: 'Debris Cleared + Rainfall Subsided',
-    summary: 'Minor mudflow across highway cleared by district public works department. Slope sensors report stable equilibrium.',
-    status: 'resolved',
-    statusLabel: 'Resolved',
-    recipients: 310,
-  },
-];
+// Incidents are created by officers (or from a live district level) and stored in the backend.
+// No sample incidents are shipped.
+const CACHE_KEY = 'sanket_incidents_v2';
+
+function relTime(iso) {
+  if (!iso) return '';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'JUST NOW';
+  if (mins < 60) return `${mins} MIN AGO`;
+  if (mins < 48 * 60) return `${Math.round(mins / 60)} H AGO`;
+  return new Date(iso).toLocaleDateString();
+}
 
 export default function Alerts({ role, goTo }) {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Load persisted incidents from localStorage with fallback to default data
+  // Incidents come from the backend (SQLite). localStorage is only an offline read cache.
   const [incidents, setIncidents] = useState(() => {
     try {
-      const saved = localStorage.getItem('sanket_incidents_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return INCIDENTS_DATA;
+      const saved = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
   });
-
-  const incidentsRef = React.useRef(incidents);
-  incidentsRef.current = incidents;
-
-  // Persist incidents whenever updated
   useEffect(() => {
-    try {
-      localStorage.setItem('sanket_incidents_v1', JSON.stringify(incidents));
-    } catch {}
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(incidents)); } catch { /* ignore */ }
   }, [incidents]);
 
-  // Incidents are persisted in the backend (SQLite). localStorage above is only the
-  // instant-load cache / offline fallback. First run seeds the backend with the defaults.
   const [storeOnline, setStoreOnline] = useState(false);
   useEffect(() => {
     let alive = true;
-    module1Api.listIncidents().then(async (rows) => {
+    module1Api.listIncidents().then((rows) => {
       if (!alive || !Array.isArray(rows)) return;
       setStoreOnline(true);
-      if (rows.length > 0) setIncidents(rows);
-      else await Promise.all(incidentsRef.current.map((i) => module1Api.saveIncident(i)));
+      setIncidents(rows);
     });
     return () => { alive = false; };
   }, []);
@@ -129,11 +55,25 @@ export default function Alerts({ role, goTo }) {
 
   const [showDispatchModal, setShowDispatchModal] = useState(false);
 
-  // New Alert Form state
-  const [newTitle, setNewTitle] = useState('HIGH RUNOFF HAZARD WARNING');
-  const [newLocation, setNewLocation] = useState('Wayanad, Kerala');
-  const [newSeverity, setNewSeverity] = useState('critical');
-  const [newFactors, setNewFactors] = useState('Extreme Rainfall + Soil Saturation');
+  // New alert form, pre-filled from a district's live evaluation when one is picked
+  const live = useLiveDistricts();
+  const [newDistrictId, setNewDistrictId] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [newSeverity, setNewSeverity] = useState('high');
+  const [newFactors, setNewFactors] = useState('');
+
+  function prefillFromDistrict(id) {
+    setNewDistrictId(id);
+    const d = live.byId[id];
+    if (!d) return;
+    const g = d.governing_window;
+    setNewLocation(`${d.name}, ${d.state}`);
+    setNewTitle(`${(d.level || 'unknown').toUpperCase()} — landslide rainfall threshold ${typeof d.ratio === 'number' ? `${d.ratio.toFixed(2)}× exceeded` : 'status'}`);
+    setNewSeverity(d.level === 'danger' ? 'critical' : d.level === 'warning' ? 'high' : 'moderate');
+    setNewFactors(g ? `${g.rain_mm} mm in ${g.hours} h vs threshold ${g.threshold_mm} mm (${d.threshold_region?.label}); data ${d.weather_status}, evaluated ${new Date(d.evaluated_at).toLocaleString()}`
+      : d.ratio === 0 ? 'No rain in the last 10 days' : 'No rainfall data available');
+  }
 
   const filteredIncidents = useMemo(() => {
     return incidents.filter((inc) => {
@@ -162,20 +102,20 @@ export default function Alerts({ role, goTo }) {
       alert('Please specify both an alert title and location before dispatching.');
       return;
     }
+    const now = new Date().toISOString();
+    const matched = live.byId[newDistrictId] || live.list.find((d) => newLocation.toLowerCase().includes(d.name.toLowerCase()));
     const newInc = {
       id: `inc-${Date.now()}`,
       severity: newSeverity,
       severityLabel: newSeverity.toUpperCase(),
-      timeAgo: 'JUST NOW',
+      createdAt: now,
       title: newTitle.trim(),
       location: newLocation.trim(),
-      // Link the incident to the district named in the location (was hard-coded to Wayanad).
-      districtId: Object.values(DISTRICTS).flat().find((d) => newLocation.toLowerCase().includes(d.name.toLowerCase()))?.id || 'wayanad',
-      factors: newFactors.trim() || 'Extreme Rainfall + Soil Saturation',
-      summary: 'Emergency alert dispatched to district emergency operations and field responders.',
+      districtId: matched?.id || null,
+      factors: newFactors.trim() || 'Not specified',
+      summary: 'Recorded in the SANKET incident log by a district officer.',
       status: 'active',
       statusLabel: 'Active Incident',
-      recipients: 350,
     };
     module1Api.saveIncident(newInc);
     setIncidents([newInc, ...incidents]);
@@ -186,76 +126,31 @@ export default function Alerts({ role, goTo }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 08. ALERTS / INCIDENT CENTER — HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-              ALERT CENTER
-            </h1>
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, 
-              padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-              background: 'var(--hazard-danger-wash)', color: 'var(--hazard-danger)', border: '1px solid var(--hazard-danger)' 
-            }}>
-              INCIDENT RESPONSE MODE
-            </span>
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            Active tactical incidents requiring operational attention & emergency coordination
-          </div>
-        </div>
-
-        {/* Top Quick Filter Tabs per Blueprint 08: [All] [Critical] [High] [Resolved] */}
+        <span />
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {[
-            { id: 'all', label: 'All Incidents' },
-            { id: 'critical', label: 'Critical' },
-            { id: 'high', label: 'High' },
-            { id: 'resolved', label: 'Resolved' },
-          ].map((tab) => {
-            const isActive = severityFilter === tab.id || (tab.id === 'resolved' && statusFilter === 'resolved');
-            return (
-              <button
-                key={tab.id}
-                className={`btn ${isActive ? 'primary' : ''}`}
-                style={{ padding: '4px 10px', fontSize: 11.5 }}
-                onClick={() => {
-                  if (tab.id === 'resolved') {
-                    setSeverityFilter('all');
-                    setStatusFilter('resolved');
-                  } else {
-                    setStatusFilter('all');
-                    setSeverityFilter(tab.id);
-                  }
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-
-          {role === 'district_officer' && (
+          {(role === 'district_officer' || role === 'admin') && (
             <button 
               className="btn" 
               style={{ borderColor: 'var(--hazard-danger)', color: 'var(--hazard-danger)', fontSize: 11.5 }}
               onClick={() => setShowDispatchModal(true)}
             >
-              + Dispatch Incident Alert
+              + New incident
             </button>
           )}
         </div>
       </div>
 
       {/* MAIN 2-COLUMN SPLIT: FILTERS (LEFT) | ACTIVE ALERTS LIST (RIGHT) */}
-      <div className="grid" style={{ gridTemplateColumns: '240px 1fr', gap: 16, alignItems: 'start' }}>
+      <div className="grid stack-md" style={{ gridTemplateColumns: '240px 1fr', gap: 16, alignItems: 'start' }}>
         {/* LEFT FILTERS PANE */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 8 }}>
               SEVERITY
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="filter-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
-                { id: 'all', label: 'All Severities', color: 'var(--text-primary)' },
+                { id: 'all', label: 'All', color: 'var(--text-primary)' },
                 { id: 'critical', label: '● Critical', color: 'var(--hazard-danger)' },
                 { id: 'high', label: '● High', color: 'var(--hazard-warning)' },
                 { id: 'moderate', label: '● Moderate', color: 'var(--hazard-watch)' },
@@ -282,9 +177,9 @@ export default function Alerts({ role, goTo }) {
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.05em', marginBottom: 8 }}>
               STATUS
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="filter-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
-                { id: 'all', label: 'All Statuses' },
+                { id: 'all', label: 'All' },
                 { id: 'active', label: '● Active' },
                 { id: 'monitoring', label: '● Monitoring' },
                 { id: 'resolved', label: '● Resolved' },
@@ -307,20 +202,17 @@ export default function Alerts({ role, goTo }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 10, padding: 10, background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5 }}>
-            <b>Design Rule:</b> Alerts represent operational incidents requiring human decisions, not passive notification streams.
-          </div>
         </div>
 
         {/* RIGHT: ACTIVE ALERTS QUEUE */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-            ACTIVE INCIDENTS ({filteredIncidents.length})
+            Incidents ({filteredIncidents.length})
           </div>
 
           {filteredIncidents.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-dim)' }}>
-              No incidents match the active severity and status filters.
+              No incidents.
             </div>
           ) : (
             filteredIncidents.map((inc) => {
@@ -353,7 +245,7 @@ export default function Alerts({ role, goTo }) {
                     </div>
 
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)', fontWeight: 600 }}>
-                      {inc.timeAgo}
+                      {inc.createdAt ? relTime(inc.createdAt) : inc.timeAgo}
                     </span>
                   </div>
 
@@ -384,14 +276,14 @@ export default function Alerts({ role, goTo }) {
                   {/* Action Buttons */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                     <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                      Dispatched to: <b>{inc.recipients} Field Responders</b>
+                      Incident log entry · {inc.createdAt ? new Date(inc.createdAt).toLocaleString() : ''} · no SMS/e-mail gateway connected
                     </div>
 
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button 
                         className="btn"
                         style={{ fontSize: 11.5, padding: '4px 10px' }}
-                        onClick={() => goTo('risk-map', { districtId: inc.districtId })}
+                        onClick={() => goTo('monitor', inc.districtId ? { districtId: inc.districtId } : undefined)}
                       >
                         <IconMap width={13} height={13} /> View Location
                       </button>
@@ -430,12 +322,12 @@ export default function Alerts({ role, goTo }) {
         <div className="card-head">
           <div className="card-title">Field Reports ({fieldReports.length})</div>
           <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>
-            {storeOnline ? 'Live from field officers · refreshes every 30s' : 'Backend offline — start the API to see field reports'}
+            {storeOnline ? '' : 'Backend offline'}
           </span>
         </div>
         {fieldReports.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--text-dim)', padding: '8px 0' }}>
-            No field reports yet. Switch to the Field Officer view and submit one.
+            No field reports yet.
           </div>
         ) : (
           fieldReports.slice(0, 8).map((r) => (
@@ -461,11 +353,18 @@ export default function Alerts({ role, goTo }) {
         }}>
           <div className="card" style={{ width: 440, maxWidth: '90vw' }}>
             <div className="card-head">
-              <div className="card-title">Dispatch Incident Alert</div>
+              <div className="card-title">New incident</div>
               <button className="btn" style={{ padding: '2px 8px' }} onClick={() => setShowDispatchModal(false)}>✕</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700 }}>From live district evaluation (optional)</label>
+                <select className="select-control" style={{ width: '100%' }} value={newDistrictId} onChange={(e) => prefillFromDistrict(e.target.value)}>
+                  <option value="">— choose a district to pre-fill —</option>
+                  {live.list.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.state}) · {(d.level || 'unknown').toUpperCase()}</option>)}
+                </select>
+              </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700 }}>Alert Title</label>
                 <input 
@@ -515,7 +414,7 @@ export default function Alerts({ role, goTo }) {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
                 <button className="btn" onClick={() => setShowDispatchModal(false)}>Cancel</button>
-                <button className="btn primary" onClick={handleDispatch}>Dispatch Alert</button>
+                <button className="btn primary" onClick={handleDispatch}>Save incident</button>
               </div>
             </div>
           </div>

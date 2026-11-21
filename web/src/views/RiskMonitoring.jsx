@@ -1,478 +1,278 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import L from 'leaflet';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import HazardBadge from '../components/HazardBadge.jsx';
 import DataSourceBadge from '../components/DataSourceBadge.jsx';
-import Sparkline from '../components/Sparkline.jsx';
-import {
-  ZONES, VILLAGES, ROADS, INFRASTRUCTURE, SATELLITE_DETECTIONS, FIELD_EVIDENCE, DISTRICTS,
-} from '../data/mockData.js';
+import LiveGisLeafletMap from '../components/LiveGisLeafletMap.jsx';
+import RecentHistoryPanel from '../components/RecentHistoryPanel.jsx';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
 import { module1Api } from '../services/module1Api.js';
-import {
-  IconCloudRain, IconDroplet, IconMountain, IconActivity, IconInfo, IconMap, IconSatellite, IconClock
-} from '../components/icons.jsx';
+import { REGIONS, fmt, HAZARD_COLOR, shortCite } from '../data/catalog.js';
+import { IconCloudRain, IconDroplet, IconMountain, IconActivity, IconClock } from '../components/icons.jsx';
 
-const TIME_STEPS = [
-  { id: 'now', label: 'NOW', hours: 0, mult: 0.15 },
-  { id: '6h', label: '6H', hours: 6, mult: 0.35 },
-  { id: '12h', label: '12H', hours: 12, mult: 0.65 },
-  { id: '24h', label: '24H', hours: 24, mult: 1.0 },
-  { id: '7d', label: '7D', hours: 168, mult: 2.8 },
+const RAIN_CARDS = [
+  { key: '1', label: 'LAST 1 H' }, { key: '6', label: 'LAST 6 H' }, { key: '24', label: 'LAST 24 H' },
+  { key: '72', label: 'LAST 72 H' }, { key: '168', label: 'LAST 7 DAYS' },
 ];
 
-const DISTRICT_COORDS = {
-  // Western Ghats
-  wayanad: { lat: 11.6854, lon: 76.1320, name: 'Wayanad, Kerala' },
-  idukki: { lat: 9.8494, lon: 76.9723, name: 'Idukki, Kerala' },
-  raigad: { lat: 18.2346, lon: 73.4442, name: 'Raigad, Maharashtra' },
-  pune: { lat: 19.1583, lon: 73.6872, name: 'Pune Hills, Maharashtra' },
-  nilgiris: { lat: 11.4102, lon: 76.6950, name: 'Nilgiris, Tamil Nadu' },
-
-  // Himalayas
-  rudraprayag: { lat: 30.2844, lon: 78.9811, name: 'Rudraprayag, Uttarakhand' },
-  chamoli: { lat: 30.5564, lon: 79.5670, name: 'Chamoli, Uttarakhand' },
-  tehri: { lat: 30.3800, lon: 78.4800, name: 'Tehri Garhwal, Uttarakhand' },
-  mandi: { lat: 31.7087, lon: 76.9319, name: 'Mandi, Himachal Pradesh' },
-  shimla: { lat: 31.1048, lon: 77.1734, name: 'Shimla, Himachal Pradesh' },
-  kullu: { lat: 31.9579, lon: 77.1095, name: 'Kullu, Himachal Pradesh' },
-  ramban: { lat: 33.2422, lon: 75.2415, name: 'Ramban, Jammu & Kashmir' },
-
-  // North East
-  noney: { lat: 24.7831, lon: 93.6322, name: 'Noney, Manipur' },
-  tamenglong: { lat: 24.9850, lon: 93.4920, name: 'Tamenglong, Manipur' },
-  'east-sikkim': { lat: 27.3389, lon: 88.6065, name: 'East Sikkim, Sikkim' },
-  aizawl: { lat: 23.7271, lon: 92.7176, name: 'Aizawl, Mizoram' },
-  kohima: { lat: 25.6751, lon: 94.1086, name: 'Kohima, Nagaland' },
-  'dima-hasao': { lat: 25.1830, lon: 93.0210, name: 'Dima Hasao, Assam' },
-  'east-khasi-hills': { lat: 25.5788, lon: 91.8933, name: 'East Khasi Hills, Meghalaya' },
-  'lower-dibang-valley': { lat: 28.1400, lon: 95.8400, name: 'Lower Dibang Valley, Arunachal' },
-  khowai: { lat: 24.0600, lon: 91.6000, name: 'Khowai, Tripura' },
-};
-
-export default function RiskMonitoring({ selectedDistrict, selectedZone, selectZone, selectDistrict, goTo }) {
-  const [timeStep, setTimeStep] = useState('24h');
-  const [livePrediction, setLivePrediction] = useState(null);
-  const [liveExplanation, setLiveExplanation] = useState(null);
-  const [evaluating, setEvaluating] = useState(false);
-
-  const activeTime = TIME_STEPS.find((t) => t.id === timeStep) || TIME_STEPS[3];
-
-  // Default fallback to Wayanad or Noney if none selected
-  const allDistricts = useMemo(() => Object.values(DISTRICTS).flat(), []);
-  const currentDistrict = selectedDistrict || allDistricts.find((d) => d.id === 'wayanad') || allDistricts[0];
-
-  const zonesInDistrict = useMemo(
-    () => (currentDistrict ? currentDistrict.zones.map((zid) => ZONES[zid]).filter(Boolean) : []),
-    [currentDistrict]
-  );
-  const zone = selectedZone && zonesInDistrict.some((z) => z.id === selectedZone.id) ? selectedZone : zonesInDistrict[0];
-
-  const coords = DISTRICT_COORDS[currentDistrict?.id] || { lat: 11.6854, lon: 76.1320, name: currentDistrict?.name || 'Wayanad' };
-
-  // Fetch ML predictions
-  useEffect(() => {
-    if (!currentDistrict) return;
-    let active = true;
-    setEvaluating(true);
-
-    const payload = {
-      latitude: coords.lat,
-      longitude: coords.lon,
-      zone_id: zone?.id || `${currentDistrict.id}-a`,
-    };
-
-    Promise.all([
-      module1Api.predictRisk(payload),
-      module1Api.explainRisk(zone?.id || `${currentDistrict.id}-a`, payload),
-    ])
-      .then(([pred, exp]) => {
-        if (active) {
-          setLivePrediction(pred);
-          setLiveExplanation(exp);
-          setEvaluating(false);
-        }
-      })
-      .catch(() => {
-        if (active) setEvaluating(false);
-      });
-
-    return () => { active = false; };
-  }, [currentDistrict?.id, zone?.id, timeStep]);
-
-  // Leaflet map initialization
-  const mapContainerRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const radarLayerRef = useRef(null);
-
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
-
-    if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: [coords.lat, coords.lon],
-        zoom: 11,
-        zoomControl: true,
-      });
-
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri & OpenStreetMap',
-        maxZoom: 18,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-    } else {
-      mapInstanceRef.current.setView([coords.lat, coords.lon], 11);
-    }
-
-    const map = mapInstanceRef.current;
-
-    // Remove old radar circles
-    if (radarLayerRef.current) {
-      map.removeLayer(radarLayerRef.current);
-    }
-
-    // Add simulated rainfall radar contour layer based on time horizon
-    const radarGroup = L.layerGroup().addTo(map);
-    const rainRadius = Math.max(3000, 7500 * activeTime.mult);
-
-    // Precipitation intensity contours
-    L.circle([coords.lat, coords.lon], {
-      radius: rainRadius,
-      color: '#3B82F6',
-      fillColor: '#60A5FA',
-      fillOpacity: 0.38,
-      weight: 1.5,
-    }).addTo(radarGroup);
-
-    L.circle([coords.lat, coords.lon], {
-      radius: rainRadius * 0.55,
-      color: '#F59E0B',
-      fillColor: '#FBBF24',
-      fillOpacity: 0.45,
-      weight: 1.5,
-    }).addTo(radarGroup);
-
-    L.circle([coords.lat, coords.lon], {
-      radius: rainRadius * 0.28,
-      color: '#EF4444',
-      fillColor: '#F87171',
-      fillOpacity: 0.55,
-      weight: 2,
-    }).addTo(radarGroup);
-
-    // Marker for the focal station
-    const centerMarker = L.circleMarker([coords.lat, coords.lon], {
-      radius: 9,
-      color: '#ffffff',
-      fillColor: '#A32E28',
-      fillOpacity: 1,
-      weight: 3,
-    }).addTo(radarGroup);
-
-    centerMarker.bindPopup(`
-      <div style="font-family: var(--font-display); padding: 4px;">
-        <b style="font-size: 13px;">${currentDistrict.name} Telemetry Station</b>
-        <div style="font-size: 11px; color: #555; margin-top: 3px;">
-          Lat: ${coords.lat.toFixed(4)}°, Lon: ${coords.lon.toFixed(4)}°
-        </div>
-        <div style="font-size: 11.5px; margin-top: 6px; font-weight: 700; color: #A32E28;">
-          Precipitation Horizon: ${activeTime.label}
-        </div>
+function Card({ title, icon, children, sub }) {
+  return (
+    <div className="card" style={{ padding: '12px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)' }}>
+        {title}{icon}
       </div>
-    `);
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 21, fontWeight: 800, marginTop: 4 }}>{children}</div>
+      {sub && <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
 
-    radarLayerRef.current = radarGroup;
+export default function RiskMonitoring({ selection, selectDistrict }) {
+  const live = useLiveDistricts();
+  const districtId = selection?.districtId && live.byId[selection.districtId] ? selection.districtId : (live.list[0]?.id || null);
+  const summary = districtId ? live.byId[districtId] : null;
 
-    return () => {
-      // Map cleanup on dependency change or unmount
-      if (radarLayerRef.current) {
-        map.removeLayer(radarLayerRef.current);
-      }
-    };
-  }, [coords.lat, coords.lon, activeTime.mult, currentDistrict.name]);
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  // Cleanup map container when component completely unmounts
   useEffect(() => {
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
+    if (!districtId) return undefined;
+    let alive = true;
+    setLoading(true); setFailed(false); setDetail(null);
+    module1Api.getDistrictDetail(districtId).then((res) => {
+      if (!alive) return;
+      setLoading(false);
+      if (res) setDetail(res); else setFailed(true);
+    });
+    return () => { alive = false; };
+  }, [districtId]);
 
-  // Compute live telemetry metrics across the selected time horizon
-  const env = livePrediction?.environment || {};
-  const baseRain24 = env.rainfall_24h ?? 15.4;
-  const rain7d = env.rainfall_7d ?? 42.8;
-  const max1h = env.max_rainfall_1h ?? 2.8;
+  const d = detail || summary;
+  const w = d?.weather || {};
+  const ev = detail?.evaluation;
+  const hourly = useMemo(() => (detail?.weather?.hourly_rain_72h || []).map((h) => ({
+    t: new Date(h.time).toLocaleString('en-IN', { day: '2-digit', hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }),
+    mm: h.mm ?? 0,
+  })), [detail]);
 
-  let displayRainfall = baseRain24;
-  if (timeStep === 'now') displayRainfall = max1h;
-  else if (timeStep === '6h') displayRainfall = Number((baseRain24 * 0.35).toFixed(1));
-  else if (timeStep === '12h') displayRainfall = Number((baseRain24 * 0.65).toFixed(1));
-  else if (timeStep === '24h') displayRainfall = baseRain24;
-  else if (timeStep === '7d') displayRainfall = rain7d;
-
-  const displaySoil = env.soil_moisture ? Math.min(98, Math.round(env.soil_moisture * 100)) : 68;
-  const displayTemp = env.temperature ? Number(env.temperature).toFixed(1) : '22.8';
-  const displayWind = env.wind_speed ? Math.round(env.wind_speed) : 8;
+  if (!live.data && live.loading) return <div className="card" style={{ padding: 24 }}>Loading live district data…</div>;
+  if (!live.data) return <div className="card" style={{ padding: 24, color: 'var(--hazard-danger)' }}>{live.error || 'Live data unavailable.'}</div>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 02. LIVE MONITOR PAGE — HEADER WITH LOCATION, HORIZON, AND LIVE BADGE */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-              LIVE MONITOR
-            </h1>
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, 
-              padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-              background: 'var(--surface-2)', border: '1px solid var(--border)' 
-            }}>
-              {currentDistrict.name}, {currentDistrict.state}
-            </span>
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, 
-              padding: '2px 8px', borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-glow)', color: 'var(--accent)', border: '1px solid var(--accent)' 
-            }}>
-              WINDOW: {activeTime.label}
-            </span>
-            {livePrediction && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <HazardBadge level={livePrediction.risk_level} size="sm" />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
-                  {Math.round(livePrediction.risk_probability * 100)}% ML PROB
-                </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <select className="select-control" style={{ fontWeight: 700, height: 32 }} value={districtId || ''} onChange={(e) => selectDistrict?.(e.target.value)}>
+          {REGIONS.map((r) => (
+            <optgroup key={r} label={r}>
+              {live.list.filter((x) => x.region === r).map((x) => (
+                <option key={x.id} value={x.id}>{x.name}, {x.state}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        {d && <HazardBadge level={d.level} />}
+        {d && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+          {typeof d.ratio === 'number' ? `${d.ratio.toFixed(2)}× threshold` : 'no rainfall data'}
+        </span>}
+        {d && <span title="Trained model: chance of a recorded landslide near the worst hotspot today"
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 800, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+          Confidence {typeof d.confidence === 'number' ? `${Math.round(d.confidence * 100)}%` : '—'}
+        </span>}
+        {d && <DataSourceBadge compact status={d.weather_status} source="ECMWF IFS hourly via Open-Meteo" updatedAt={w.window_end_utc} ageMinutes={w.age_minutes} />}
+        {w.window_end_utc && <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>
+          rain up to {new Date(w.window_end_utc).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} IST
+        </span>}
+      </div>
+
+      {/* Map of this district's hotspots */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '9px 14px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', fontSize: 12, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <b>Hotspots ({(d?.hotspots || []).length})</b>
+          <span style={{ color: 'var(--text-dim)' }}>the district shows the worst one</span>
+        </div>
+        <LiveGisLeafletMap districts={d ? [d] : []} selectedDistrictId={districtId} height={400} />
+      </div>
+
+      {/* Rainfall windows */}
+      <div className="grid tiles-sm-2" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
+        {RAIN_CARDS.map((c) => (
+          <Card key={c.key} title={`RAIN ${c.label}`} icon={<IconCloudRain width={14} height={14} />}
+            sub={w.status === 'stale' ? 'last real reading' : null}>
+            {fmt(w.rain_mm?.[c.key], 1)} <span style={{ fontSize: 12 }}>mm</span>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid tiles-sm-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+        <Card title="SOIL MOISTURE 7-28 cm" icon={<IconDroplet width={14} height={14} />}>
+          {fmt(w.soil_moisture_7_28cm, 3)} <span style={{ fontSize: 12 }}>m³/m³</span>
+        </Card>
+        <Card title="SOIL MOISTURE 28-100 cm" icon={<IconDroplet width={14} height={14} />}>
+          {fmt(w.soil_moisture_28_100cm, 3)} <span style={{ fontSize: 12 }}>m³/m³</span>
+        </Card>
+        <Card title="TEMPERATURE" icon={<IconActivity width={14} height={14} />}>
+          {fmt(w.temperature_c, 1, '°C')}
+        </Card>
+        <Card title="WIND" icon={<IconMountain width={14} height={14} />} sub={`gusts ${fmt(w.wind_gust_kmh, 0, ' km/h')}`}>
+          {fmt(w.wind_kmh, 0)} <span style={{ fontSize: 12 }}>km/h</span>
+        </Card>
+      </div>
+
+      {d && <RecentHistoryPanel district={d} />}
+
+      {loading && <div className="card" style={{ padding: 14, fontSize: 12.5 }}>Loading hotspot details…</div>}
+      {failed && <div className="card" style={{ padding: 14, fontSize: 12.5, color: 'var(--hazard-danger)' }}>Hotspot details unavailable.</div>}
+
+      {detail && (
+        <>
+          <div className="grid stack-sm" style={{ gridTemplateColumns: '1.2fr 1fr', gap: 14 }}>
+            {/* Hourly rain chart */}
+            <div className="card">
+              <div className="card-head">
+                <div className="card-title" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><IconClock width={14} height={14} /> Hourly rain, last 72 h</div>
               </div>
-            )}
-            <DataSourceBadge 
-              isLive={!livePrediction?.is_mock} 
-              source={livePrediction?.data_source || 'Open-Meteo ERA5 / DEM'} 
-              updatedAt={livePrediction?.evaluated_at} 
-            />
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-            ENVIRONMENTAL MONITORING — Real-time satellite feeds, DEM topography & ML hazard classification
-          </div>
-        </div>
-
-        {/* District Switcher */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Focal Station:</label>
-          <select 
-            className="select-control"
-            value={currentDistrict.id}
-            onChange={(e) => {
-              const d = allDistricts.find((item) => item.id === e.target.value);
-              if (d && selectDistrict) selectDistrict(d.id);
-            }}
-          >
-            <optgroup label="Western Ghats">
-              <option value="wayanad">Wayanad (Kerala)</option>
-              <option value="idukki">Idukki (Kerala)</option>
-              <option value="raigad">Raigad (Maharashtra)</option>
-              <option value="pune">Pune Hills (Maharashtra)</option>
-              <option value="nilgiris">Nilgiris (Tamil Nadu)</option>
-            </optgroup>
-            <optgroup label="North-Western Himalayas">
-              <option value="rudraprayag">Rudraprayag (Uttarakhand)</option>
-              <option value="chamoli">Chamoli (Uttarakhand)</option>
-              <option value="tehri">Tehri Garhwal (Uttarakhand)</option>
-              <option value="mandi">Mandi (Himachal Pradesh)</option>
-              <option value="shimla">Shimla (Himachal Pradesh)</option>
-              <option value="kullu">Kullu (Himachal Pradesh)</option>
-              <option value="ramban">Ramban (Jammu & Kashmir)</option>
-            </optgroup>
-            <optgroup label="North-Eastern Region">
-              <option value="noney">Noney (Manipur)</option>
-              <option value="tamenglong">Tamenglong (Manipur)</option>
-              <option value="east-sikkim">East Sikkim (Sikkim)</option>
-              <option value="aizawl">Aizawl (Mizoram)</option>
-              <option value="kohima">Kohima (Nagaland)</option>
-              <option value="dima-hasao">Dima Hasao (Assam)</option>
-              <option value="east-khasi-hills">East Khasi Hills (Meghalaya)</option>
-              <option value="lower-dibang-valley">Lower Dibang Valley (Arunachal)</option>
-              <option value="khowai">Khowai (Tripura)</option>
-            </optgroup>
-          </select>
-        </div>
-      </div>
-
-      {/* DOMINANT LIVE MAP (WEATHER / RAINFALL LAYER) */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ 
-          padding: '10px 16px', 
-          background: 'var(--surface-2)', 
-          borderBottom: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 13 }}>LIVE WEATHER & PRECIPITATION RADAR LAYER</span>
-            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-              NASA GPM IMERG 0.1° + High Resolution Radar Overlay
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 10, background: '#60A5FA', borderRadius: 2 }} /> Light (&lt;20mm)
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 10, background: '#FBBF24', borderRadius: 2 }} /> Moderate (&gt;40mm)
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 10, background: '#F87171', borderRadius: 2 }} /> Intense Cloudburst (&gt;80mm)
-            </span>
-          </div>
-        </div>
-
-        <div 
-          ref={mapContainerRef} 
-          style={{ width: '100%', height: 440, minHeight: 400, background: '#1c2620' }} 
-        />
-      </div>
-
-      {/* 4 WEATHER KPI CARDS SPECIFIED IN BLUEPRINT 02 */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        <div className="card" style={{ padding: '14px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>RAINFALL</span>
-            <IconCloudRain width={15} height={15} style={{ color: 'var(--accent-2)' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 800, color: displayRainfall > 50 ? 'var(--hazard-danger)' : 'var(--text-primary)' }}>
-            {displayRainfall} <span style={{ fontSize: 14 }}>mm</span>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-            Window: {activeTime.label} accumulation
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>SOIL</span>
-            <IconDroplet width={15} height={15} style={{ color: 'var(--accent)' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 800, color: displaySoil > 70 ? 'var(--hazard-danger)' : 'var(--text-primary)' }}>
-            {displaySoil}%
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-            NASA SMAP Saturated Column
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>TEMP</span>
-            <IconActivity width={15} height={15} style={{ color: 'var(--text-muted)' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
-            {displayTemp}°C
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-            Open-Meteo High Elevation
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>WIND SPEED</span>
-            <IconMountain width={15} height={15} style={{ color: 'var(--text-muted)' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
-            {displayWind} <span style={{ fontSize: 14 }}>km/h</span>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-            Gusting up to 24 km/h
-          </div>
-        </div>
-      </div>
-
-      {/* TIMELINE SCRUBBER DEFINED IN BLUEPRINT 02 */}
-      <div className="card" style={{ padding: '16px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <IconClock width={15} height={15} /> TIMELINE SCRUBBER (HORIZON PROJECTION)
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-            Clicking updates radar circles, soil saturation, and ML susceptibility
-          </div>
-        </div>
-
-        {/* Scrub Track */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', margin: '10px 16px 4px' }}>
-          <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 4, background: 'var(--surface-2)', transform: 'translateY(-50%)', borderRadius: 2 }} />
-          
-          {TIME_STEPS.map((t) => {
-            const isSelected = t.id === timeStep;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTimeStep(t.id)}
-                style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <div style={{
-                  width: isSelected ? 22 : 14,
-                  height: isSelected ? 22 : 14,
-                  borderRadius: '50%',
-                  background: isSelected ? 'var(--accent)' : 'var(--border)',
-                  border: isSelected ? '3px solid #ffffff' : '2px solid var(--surface)',
-                  boxShadow: isSelected ? '0 0 0 2px var(--accent)' : 'none',
-                  transition: 'all 0.15s ease',
-                }} />
-                <span style={{
-                  marginTop: 6,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: isSelected ? 12 : 11,
-                  fontWeight: isSelected ? 800 : 500,
-                  color: isSelected ? 'var(--accent)' : 'var(--text-muted)',
-                }}>
-                  {t.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* AI EXPLANATIONS & SUBSURFACE RISK CARD */}
-      {liveExplanation && (
-        <div className="card">
-          <div className="card-head">
-            <div>
-              <div className="card-title">TreeSHAP Explainability & Factor Attribution</div>
-              <div className="card-subtitle">
-                Model: XGBoost v1.0 · Multi-Sensor Feature Contributions for {zone?.name || currentDistrict.name}
+              <div style={{ height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hourly}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="t" tick={{ fontSize: 9 }} interval={11} />
+                    <YAxis tick={{ fontSize: 10 }} unit=" mm" width={50} />
+                    <Tooltip />
+                    <Bar isAnimationActive={false} dataKey="mm" fill="#028C74" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
-            <span className="mvp-flag">{liveExplanation.method || 'TreeSHAP Ingested'}</span>
+
+            {/* Threshold evaluation */}
+            <div className="card">
+              <div className="card-head"><div>
+                <div className="card-title">Why this level</div>
+                <div className="card-subtitle">Rain vs the {ev?.region?.label} threshold</div>
+              </div></div>
+              {ev?.windows?.length ? (
+                <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12 }}>
+                  <thead><tr><th>Window</th><th>Rain</th><th>Threshold</th><th>Ratio</th></tr></thead>
+                  <tbody>
+                    {ev.windows.map((r) => (
+                      <tr key={r.hours} style={ev.governing_window?.hours === r.hours ? { background: 'var(--surface-2)', fontWeight: 700 } : undefined}>
+                        <td>{r.hours} h</td><td>{r.rain_mm} mm</td><td>{r.threshold_mm} mm</td>
+                        <td style={{ color: r.ratio >= 1 ? 'var(--hazard-warning)' : undefined }}>{r.ratio.toFixed(2)}×</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
+              ) : <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ev?.reason || 'No rainfall data.'}</div>}
+              <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 8 }} title={ev?.region?.citation}>
+                Watch ≥ {ev?.levels?.watch}× · Warning ≥ {ev?.levels?.warning}× · Danger ≥ {ev?.levels?.danger}× · {shortCite(ev?.region?.citation)}
+              </div>
+            </div>
           </div>
 
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            {(liveExplanation.factors || []).map((f, i) => (
-              <div key={i} style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{f.factor}</div>
-                <div style={{ 
-                  fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, marginTop: 4,
-                  color: f.status === 'Critical' || f.status === 'High' ? 'var(--hazard-danger)' : f.status === 'Elevated' ? 'var(--hazard-warning)' : 'var(--hazard-normal)' 
-                }}>
-                  {f.status}
+          {/* Trained-model confidence */}
+          {(() => {
+            const h = detail.hotspots.find((x) => x.id === detail.confidence_hotspot) || detail.hotspots[0];
+            const c = h?.confidence_detail;
+            return (
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-title">Landslide confidence</div>
                 </div>
+                {!c || c.status !== 'live' ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c?.reason || 'Confidence unavailable.'}</div> : (
+                  <div className="grid stack-sm" style={{ gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
+                    <div style={{ textAlign: 'center', padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <div style={{ fontSize: 40, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{Math.round(c.confidence * 100)}%</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>worst hotspot ({h.id})</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 6 }}>What drives it</div>
+                      {c.drivers.map((dr) => (
+                        <div key={dr.factor} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span>{dr.factor}</span>
+                          <b style={{ color: dr.points > 0 ? 'var(--hazard-warning)' : 'var(--text-muted)' }}>{dr.points > 0 ? '+' : ''}{dr.points} pts</b>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            );
+          })()}
+
+          {/* Hotspot table */}
+          <div className="card">
+            <div className="card-head">
+              <div className="card-title">Hotspots in {detail.name}</div>
+            </div>
+            <div className="table-scroll" style={{ overflowX: 'auto' }}>
+              <table className="data-table" style={{ width: '100%', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th>Hotspot</th><th>Level</th><th>Ratio</th><th>Confidence</th><th>Rain 24 h</th><th>Rain 72 h</th>
+                    <th>Slope</th><th>Elevation</th><th>Vegetation (NDVI)</th><th>Past landslides ≤10 km</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.hotspots.map((h) => {
+                    const t = h.terrain || {};
+                    const v = h.vegetation || {};
+                    const hist = h.landslide_history || {};
+                    return (
+                      <tr key={h.id}>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{h.id}<div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{h.lat.toFixed(4)}, {h.lon.toFixed(4)}</div></td>
+                        <td><HazardBadge level={h.level} size="sm" /></td>
+                        <td style={{ color: HAZARD_COLOR[h.level] }}>{typeof h.ratio === 'number' ? `${h.ratio.toFixed(2)}×` : '—'}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{typeof h.confidence === 'number' ? `${Math.round(h.confidence * 100)}%` : '—'}</td>
+                        <td>{fmt(h.rain_24h_mm, 1, ' mm')}</td>
+                        <td>{fmt(h.rain_72h_mm, 1, ' mm')}</td>
+                        <td>{fmt(t.slope_deg, 1, '°')}</td>
+                        <td>{fmt(t.elevation_m, 0, ' m')}</td>
+                        <td title={v.reason || v.period || ''}>
+                          {v.status === 'unavailable' ? <span style={{ color: 'var(--text-dim)' }}>no clear image</span>
+                            : <>{fmt(v.ndvi, 2)} {v.ndvi_change != null && <span style={{ color: 'var(--text-muted)' }}>({v.ndvi_change >= 0 ? '+' : ''}{v.ndvi_change.toFixed(2)})</span>}{v.status === 'stale' && ' *'}</>}
+                        </td>
+                        <td title={hist.status === 'live' ? Object.entries(hist.by_source || {}).map(([k, n]) => `${k}: ${n}`).join(' · ') || 'none within 10 km' : hist.reason || ''}>
+                          {hist.status === 'live'
+                            ? <><b>{hist.count}</b>{hist.latest_year ? <span style={{ color: 'var(--text-muted)' }}> · latest {hist.latest_year}</span> : null}
+</>
+                            : <span style={{ color: 'var(--text-dim)' }}>no inventory loaded</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {(() => {
+            const gov = detail.hotspots.find((h) => h.id === detail.governing_hotspot) || detail.hotspots[0];
+            const hist = gov?.landslide_history;
+            if (!hist || hist.status !== 'live') return null;
+            return (
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-title">Past landslides within {hist.radius_km} km ({hist.count})</div>
+                </div>
+                {hist.nearest_events?.length ? (
+                  <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12 }}>
+                    <thead><tr><th>Distance</th><th>Year</th><th>Place</th><th>Trigger</th><th>Source</th></tr></thead>
+                    <tbody>
+                      {hist.nearest_events.map((e, i) => (
+                        <tr key={i}>
+                          <td>{fmt(e.distance_km, 2, ' km')}</td><td>{e.year || '—'}</td>
+                          <td>{e.name || <span style={{ color: 'var(--text-dim)' }}>unnamed ({e.lat}, {e.lon})</span>}</td>
+                          <td>{e.trigger || '—'}</td><td style={{ fontSize: 11 }}>{e.source}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table></div>
+                ) : <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No recorded landslide within {hist.radius_km} km (nearest {fmt(hist.nearest_km, 1, ' km')}).</div>}
+              </div>
+            );
+          })()}
+        </>
       )}
     </div>
   );

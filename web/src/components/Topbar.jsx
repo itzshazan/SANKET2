@@ -1,68 +1,104 @@
-import React from 'react';
-import { IconChevronRight } from './icons.jsx';
-import { ALERT_LANGUAGES } from '../data/mockData.js';
+import React, { useEffect, useRef, useState } from 'react';
+import { ALERT_LANGUAGES } from '../data/catalog.js';
+import { useLiveDistricts } from '../data/useLiveDistricts.js';
 import { canAccess } from '../routes.js';
 import GlobalSearch from './GlobalSearch.jsx';
 
-export default function TopBar({ title, crumbs, role, onRoleChange, language, onLanguageChange, onSearchSelectDistrict, onMenuClick, theme, onToggleTheme }) {
-  // Search navigates to Risk Monitoring — only offer it to a role that can
-  // actually reach that view (matches the Sidebar's own route access check),
-  // rather than hand-carving a "field_officer" special case here.
+const ROLE_LABEL = { admin: 'Administrator', district_officer: 'District officer', field_officer: 'Field officer' };
+
+function initials(user) {
+  const name = (user?.full_name || user?.email || '').trim();
+  const parts = name.split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+}
+
+function LanguageSelect({ language, onLanguageChange, ...rest }) {
+  return (
+    <select className="select-control" value={language} onChange={(e) => onLanguageChange(e.target.value)} aria-label="Alert language" {...rest}>
+      {ALERT_LANGUAGES.map((l) => (
+        <option key={l.code} value={l.code} disabled={l.status === 'planned'}>
+          {l.label}{l.status === 'planned' ? ' (planned)' : ''}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// Phones: one row (menu, title, feed status, theme, account) plus the search on its own row; the
+// account details, language and Sign out move into the account menu. Wider screens show everything inline.
+export default function TopBar({ title, role, user, onSignOut, language, onLanguageChange, onSearchSelectDistrict, onMenuClick, theme, onToggleTheme }) {
+  // Search opens Live Monitor, so it is offered only to roles that can open it (same check as the sidebar).
   const canSearch = canAccess('monitor', role);
+  const live = useLiveDistricts();
+  const statuses = new Set(live.list.map((d) => d.weather_status));
+  const feed = !live.data ? { label: live.loading ? 'CONNECTING' : 'OFFLINE', color: '#64726F' }
+    : statuses.size === 1 && statuses.has('live') ? { label: 'LIVE', color: 'var(--hazard-normal)' }
+      : statuses.has('live') || statuses.has('stale') ? { label: 'PARTLY STALE', color: '#B7860F' }
+        : { label: 'NO DATA', color: '#64726F' };
+  const feedTitle = live.data ? `Weather: Open-Meteo · terrain: Copernicus GLO-30 · updated ${new Date(live.data.updated_at).toLocaleTimeString()}` : '';
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = (e) => { if (!menuRef.current?.contains(e.target)) setMenuOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [menuOpen]);
+  useEffect(() => { setMenuOpen(false); }, [title]);          // a new page closes the menu
+
   return (
     <header className="topbar">
       <div className="topbar-left">
-        {/* Only visible below the mobile breakpoint (index.css) — on desktop
-            the sidebar is always visible, so there's nothing to open. */}
+        {/* Only visible below the mobile breakpoint (index.css); on desktop the sidebar is always shown. */}
         <button className="hamburger-btn" onClick={onMenuClick} aria-label="Open menu">☰</button>
-        <div className="topbar-title">{title}</div>
-        {crumbs && crumbs.length > 0 && (
-          <div className="breadcrumb">
-            {crumbs.map((c, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <IconChevronRight width={12} height={12} />}
-                {i === crumbs.length - 1 ? <b>{c}</b> : <span>{c}</span>}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
+        <h1 className="topbar-title">{title}</h1>
       </div>
 
       <div className="topbar-right">
-        {canSearch && <GlobalSearch onSelectDistrict={onSearchSelectDistrict} />}
-        <button
-          className="theme-toggle-btn"
-          onClick={onToggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        >
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
-        <span className="live-dot" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 12, background: 'rgba(63, 139, 76, 0.12)', color: 'var(--hazard-normal)', border: '1px solid rgba(63, 139, 76, 0.25)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--hazard-normal)', display: 'inline-block' }} />
-          LIVE ● NASA + COPERNICUS
-        </span>
+        {canSearch && <div className="topbar-search"><GlobalSearch onSelectDistrict={onSearchSelectDistrict} /></div>}
+        <div className="topbar-tools">
+          <span className="live-dot feed-badge" title={feedTitle} style={{ color: feed.color }}>
+            <span className="feed-dot" />
+            <span className="feed-label">{feed.label}</span>
+          </span>
+          <button
+            className="theme-toggle-btn"
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
 
-        <select
-          className="select-control"
-          value={role}
-          onChange={(e) => onRoleChange(e.target.value)}
-        >
-          <option value="district_officer">District Officer</option>
-          <option value="field_officer">Field Officer</option>
-        </select>
+          <span className="topbar-wide topbar-user" title={user?.email}>
+            <b>{user?.full_name || user?.email || ''}</b>
+            <span>{ROLE_LABEL[role] || ''}</span>
+          </span>
+          <button className="btn topbar-wide" style={{ fontSize: 12 }} onClick={onSignOut}>Sign out</button>
+          <LanguageSelect className="select-control topbar-wide" language={language} onLanguageChange={onLanguageChange} />
 
-        <select
-          className="select-control"
-          value={language}
-          onChange={(e) => onLanguageChange(e.target.value)}
-        >
-          {ALERT_LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code} disabled={l.status === 'planned'}>
-              {l.label}{l.status === 'planned' ? ' (planned)' : ''}
-            </option>
-          ))}
-        </select>
+          <div className="account" ref={menuRef}>
+            <button className="account-btn" onClick={() => setMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={menuOpen}
+              aria-label="Account and settings">{initials(user)}</button>
+            {menuOpen && (
+              <div className="account-menu" role="menu">
+                <div className="account-who">
+                  <b>{user?.full_name || 'Signed in'}</b>
+                  <span>{user?.email}</span>
+                  <span className="account-role">{ROLE_LABEL[role] || ''}</span>
+                </div>
+                <label className="account-row">
+                  <span>Alert language</span>
+                  <LanguageSelect language={language} onLanguageChange={onLanguageChange} />
+                </label>
+                <button className="btn account-signout" role="menuitem" onClick={() => { setMenuOpen(false); onSignOut(); }}>Sign out</button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );

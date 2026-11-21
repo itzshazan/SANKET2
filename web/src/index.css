@@ -1,82 +1,75 @@
 @import 'leaflet/dist/leaflet.css';
 
-/* SANKET — "Highland" design system: a nature-inspired evolution of the
-   "Light Clinical" system inherited from PharmaBoard. Structure, density and
-   type scale carry over unchanged; the palette moves from clinical navy/gray
-   to the terrain this product actually monitors — forest canopy, wet slate
-   stone, monsoon-soaked soil. Hazard scale stays a 4-level RAG-derived
-   system but is re-tuned to earth tones so it reads as terrain risk, not a
-   lab instrument. See docs/dashboard-spec.md §5. */
+/* SANKET colour theme, taken from doctorrating.in: deep forest #013126, teal #028c74, mint #58eda2,
+   warm sand surfaces (#f7f4ef / #efebe4 / #e2dbd2) and green-grey text. The hazard scale keeps four
+   clearly different hues (green, gold, orange, red) because officers read it as a safety signal. */
 
 :root {
-  /* Surfaces — warm stone, not cool clinical gray */
-  --bg: #F3F1E9;
-  --surface: #FCFBF6;
-  --surface-2: #E9E5D6;
-  --border: #D9D2BC;
-  --border-muted: #E9E5D6;
+  /* Surfaces: warm sand */
+  --bg: #F7F4EF;
+  --surface: #FFFFFF;
+  --surface-2: #EFEBE4;
+  --border: #E2DBD2;
+  --border-muted: #EDE9E3;
 
-  /* Accent — deep forest canopy, interactive only */
-  --accent: #2E5E45;
-  --accent-dim: #234A36;
-  --accent-glow: rgba(46, 94, 69, 0.09);
+  /* Accent: doctorrating teal (buttons, links, selection) */
+  --accent: #028C74;
+  --accent-dim: #03705E;
+  --accent-glow: rgba(2, 140, 116, 0.10);
 
-  /* Second accent — river-stone teal. Selection rings, secondary emphasis,
-     info highlights — anything that needs to read as "chosen" without
-     being confused for hazard-normal's green or the primary accent. This
-     is what stops the whole UI reading as one hue. */
-  --accent-2: #2E6B72;
-  --accent-2-dim: #234F55;
-  --accent-2-glow: rgba(46, 107, 114, 0.1);
+  /* Second accent: deep forest */
+  --accent-2: #013126;
+  --accent-2-dim: #035748;
+  --accent-2-glow: rgba(1, 49, 38, 0.08);
 
-  /* Text — near-black with a green undertone, not pure gray */
-  --text-primary: #1C2620;
-  --text-muted: #57604F;
-  --text-dim: #8A9182;
+  /* Text: forest ink and green-grey */
+  --text-primary: #013126;
+  --text-muted: #4A5A56;
+  --text-dim: #64726F;
 
-  --header-bg: var(--surface);
+  --header-bg: #FFFFFF;
   --header-text: var(--text-primary);
   --header-border: var(--border);
 
-  /* Hazard scale — deliberately spread across the wheel, not clustered in
-     one corner: grass green (~140°) -> golden amber (~42°) -> terracotta
-     (~25°) -> saturated rust red (~6°). The earlier version packed watch/
-     warning/danger into one 15-35° band, which is why the UI read as
-     "everything is orange-brown except normal" — fixed by widening watch
-     toward true gold and danger toward true red, so all four are
-     distinguishable at a glance, not just normal-vs-everything-else. */
-  --hazard-normal: #3F8B4C;
-  --hazard-watch: #C99A2E;
-  --hazard-warning: #C1651F;
-  --hazard-danger: #A32E28;
+  /* Hazard scale: green -> gold -> orange -> red (distinct at a glance) */
+  --hazard-normal: #1F9D55;
+  --hazard-watch: #C9971F;
+  --hazard-warning: #E5600A;
+  --hazard-danger: #B42318;
 
-  --hazard-normal-wash: rgba(63, 139, 76, 0.11);
-  --hazard-watch-wash: rgba(201, 154, 46, 0.13);
-  --hazard-warning-wash: rgba(193, 101, 31, 0.12);
-  --hazard-danger-wash: rgba(163, 46, 40, 0.11);
+  --hazard-normal-wash: rgba(31, 157, 85, 0.11);
+  --hazard-watch-wash: rgba(201, 151, 31, 0.13);
+  --hazard-warning-wash: rgba(229, 96, 10, 0.11);
+  --hazard-danger-wash: rgba(180, 35, 24, 0.10);
 
-  /* Map-specific fills — the small-badge washes above (10-13% opacity) are
-     correct for a text badge, but on a large map they compress into an
-     indistinct blur against the warm cream background. The map needs more
-     saturation to actually communicate risk at a glance. */
-  --hazard-normal-map: rgba(63, 139, 76, 0.30);
-  --hazard-watch-map: rgba(201, 154, 46, 0.32);
-  --hazard-warning-map: rgba(193, 101, 31, 0.32);
-  --hazard-danger-map: rgba(163, 46, 40, 0.30);
+  --hazard-normal-map: rgba(31, 157, 85, 0.30);
+  --hazard-watch-map: rgba(201, 151, 31, 0.32);
+  --hazard-warning-map: rgba(229, 96, 10, 0.30);
+  --hazard-danger-map: rgba(180, 35, 24, 0.30);
 
-  /* Categorical chart palette — forest -> moss -> stone -> sand -> deep pine */
-  --chart-1: #2E5E45;
-  --chart-2: #6B8F6E;
-  --chart-3: #9B9683;
-  --chart-4: #C9C2A8;
-  --chart-5: #234A36;
+  /* Chart palette: teal -> forest -> mint -> green-grey -> sand */
+  --chart-1: #028C74;
+  --chart-2: #013126;
+  --chart-3: #58EDA2;
+  --chart-4: #64726F;
+  --chart-5: #CDC5B9;
+
+  /* Sidebar: deep forest panel, like doctorrating's dark banner */
+  --sidebar-bg: #013126;
+  --sidebar-text: #F2F7F4;
+  --sidebar-text-muted: #B7CBC3;
+  --sidebar-text-dim: #86A198;
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+  --sidebar-line: rgba(255, 255, 255, 0.10);
+  --sidebar-active: #58EDA2;
+  --sidebar-active-bg: rgba(88, 237, 162, 0.12);
 
   --radius-sm: 2px;
   --radius-md: 3px;
   --radius-lg: 4px;
 
   --shadow-card: none;
-  --shadow-modal: 0 4px 16px rgba(15, 20, 25, 0.12);
+  --shadow-modal: 0 4px 16px rgba(1, 49, 38, 0.14);
 
   --transition: 120ms ease-out;
 
@@ -86,56 +79,52 @@
   --sidebar-w: 232px;
 }
 
-/* Dark mode — "Highland Night." Same hue relationships as the light palette
-   (the hazard scale's deliberate 140°/42°/25°/6° spread is load-bearing —
-   preserved here, just re-lit for a dark surface rather than re-hued) so a
-   district officer switching themes mid-shift doesn't have to re-learn what
-   each colour means. Toggled via a `data-theme` attribute on <html>
-   (App.jsx), not prefers-color-scheme — this is a persisted user choice
-   (localStorage), not an OS-following default. */
+/* Dark mode: the same palette at night (forest surfaces, mint accent). Toggled via data-theme on <html>. */
 [data-theme='dark'] {
-  --bg: #14201A;
-  --surface: #1B2921;
-  --surface-2: #24352B;
-  --border: #35473C;
-  --border-muted: #2A3B31;
+  --bg: #011B15;
+  --surface: #02251D;
+  --surface-2: #063428;
+  --border: #12473A;
+  --border-muted: #0B3A2F;
 
-  --accent: #6FBF8E;
-  --accent-dim: #5AA378;
-  --accent-glow: rgba(111, 191, 142, 0.16);
+  --accent: #58EDA2;
+  --accent-dim: #3BD28A;
+  --accent-glow: rgba(88, 237, 162, 0.14);
 
-  --accent-2: #5FC3CC;
-  --accent-2-dim: #4BA8B0;
-  --accent-2-glow: rgba(95, 195, 204, 0.16);
+  --accent-2: #12A084;
+  --accent-2-dim: #028C74;
+  --accent-2-glow: rgba(18, 160, 132, 0.16);
 
-  --text-primary: #EAF0EA;
-  --text-muted: #A9B8A9;
-  --text-dim: #708070;
+  --text-primary: #EEF4F0;
+  --text-muted: #B3C6BE;
+  --text-dim: #7F988F;
 
-  --header-bg: #182620;
+  --header-bg: #02251D;
   --header-text: var(--text-primary);
   --header-border: var(--border);
 
-  --hazard-normal: #5FBF72;
-  --hazard-watch: #E0B24A;
-  --hazard-warning: #E08849;
-  --hazard-danger: #E2645C;
+  --hazard-normal: #3FCF7F;
+  --hazard-watch: #E6B648;
+  --hazard-warning: #F5863A;
+  --hazard-danger: #F0675C;
 
-  --hazard-normal-wash: rgba(95, 191, 114, 0.18);
-  --hazard-watch-wash: rgba(224, 178, 74, 0.2);
-  --hazard-warning-wash: rgba(224, 136, 73, 0.18);
-  --hazard-danger-wash: rgba(226, 100, 92, 0.18);
+  --hazard-normal-wash: rgba(63, 207, 127, 0.18);
+  --hazard-watch-wash: rgba(230, 182, 72, 0.2);
+  --hazard-warning-wash: rgba(245, 134, 58, 0.18);
+  --hazard-danger-wash: rgba(240, 103, 92, 0.18);
 
-  --hazard-normal-map: rgba(95, 191, 114, 0.34);
-  --hazard-watch-map: rgba(224, 178, 74, 0.36);
-  --hazard-warning-map: rgba(224, 136, 73, 0.36);
-  --hazard-danger-map: rgba(226, 100, 92, 0.34);
+  --hazard-normal-map: rgba(63, 207, 127, 0.34);
+  --hazard-watch-map: rgba(230, 182, 72, 0.36);
+  --hazard-warning-map: rgba(245, 134, 58, 0.36);
+  --hazard-danger-map: rgba(240, 103, 92, 0.34);
 
-  --chart-1: #6FBF8E;
-  --chart-2: #8FB090;
-  --chart-3: #7C8A79;
-  --chart-4: #5A6656;
-  --chart-5: #4A8C68;
+  --chart-1: #58EDA2;
+  --chart-2: #12A084;
+  --chart-3: #BFE5D0;
+  --chart-4: #7F988F;
+  --chart-5: #CDC5B9;
+
+  --sidebar-bg: #011510;
 
   --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
@@ -186,10 +175,18 @@ input {
 }
 
 .sidebar {
+  --text-primary: var(--sidebar-text);
+  --text-muted: var(--sidebar-text-muted);
+  --text-dim: var(--sidebar-text-dim);
+  --surface-2: var(--sidebar-hover);
+  --border-muted: var(--sidebar-line);
+  --accent: var(--sidebar-active);
+  --accent-glow: var(--sidebar-active-bg);
   width: var(--sidebar-w);
   flex: none;
-  background: var(--header-bg);
-  border-right: 1px solid var(--header-border);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   padding: 18px 0;
@@ -207,8 +204,8 @@ input {
 .sidebar-brand .mark {
   width: 30px;
   height: 30px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
+  border-radius: 8px;
+  background: #028C74;
   color: #fff;
   display: flex;
   align-items: center;
@@ -377,6 +374,16 @@ input {
   }
 }
 
+/* six equal KPI tiles on one row, wrapping 3 + 3 / 2 + 2 + 2 on narrower screens */
+@media print { .no-print { display: none !important; } }
+.model-fig-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1000px) { .model-fig-grid { grid-template-columns: 1fr; } }
+.kpi-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.nowrap-num td { white-space: nowrap; }
+.nowrap-num td:first-child { white-space: normal; }
+
 .topbar {
   /* min-height + wrap, not a fixed height — topbar-right (search box, live
      indicator, role select, language select) has real minimum widths that
@@ -394,7 +401,7 @@ input {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  padding: 14px 24px;
+  padding: 10px 24px;
   gap: 10px 16px;
 }
 
@@ -800,6 +807,8 @@ input {
 .hz-badge.warning .hz-dot { background: var(--hazard-warning); }
 .hz-badge.danger { color: var(--hazard-danger); background: var(--hazard-danger-wash); border-color: rgba(179,38,30,.25); }
 .hz-badge.danger .hz-dot { background: var(--hazard-danger); }
+.hz-badge.unknown { color: #6b7280; background: rgba(107,114,128,.12); border-color: rgba(107,114,128,.3); }
+.hz-badge.unknown .hz-dot { background: #9ca3af; }
 
 /* connectivity status badges reuse hazard palette: open=normal, at-risk=warning, blocked=danger */
 
@@ -921,3 +930,118 @@ input {
 .pulse-danger {
   animation: hazard-pulse 2s infinite;
 }
+
+/* "Signing you in…" / "Checking your sign-in…" between the sign-in form and the dashboard */
+.signing-in { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #f7f4ef; }
+.signing-in span { display: inline-flex; align-items: center; gap: 10px; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #4a5a56; }
+.signing-in i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(2, 140, 116, .2); border-top-color: #028c74; animation: signing-spin .8s linear infinite; }
+@keyframes signing-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .signing-in i { animation: none; } }
+
+/* Sidebar entries are real links now */
+a.nav-item { text-decoration: none; box-sizing: border-box; }
+.sidebar-brand-link { display: block; color: inherit; text-decoration: none; border-radius: 8px; }
+.sidebar-brand-link:focus-visible, a.nav-item:focus-visible { outline: 2px solid #58eda2; outline-offset: 2px; }
+
+/* 404 and error pages (full screen) */
+.status-page { min-height: 100vh; display: flex; flex-direction: column; padding: 26px clamp(24px, 6vw, 80px); background: radial-gradient(900px 520px at -12% -18%, rgba(88, 237, 162, .14), transparent 60%), #f7f4ef; font-family: 'Inter', system-ui, sans-serif; color: #013126; }
+.status-brand { display: inline-flex; width: fit-content; text-decoration: none; }
+.status-body { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 520px; }
+.status-code { font-size: 13px; font-weight: 600; letter-spacing: .16em; color: #028c74; }
+.status-body h1 { font-family: 'Newsreader', Georgia, serif; font-weight: 450; font-size: clamp(40px, 5vw, 60px); letter-spacing: -0.035em; line-height: 1.02; margin: 12px 0; }
+.status-body p { margin: 0 0 26px; font-size: 16px; line-height: 1.6; color: #4a5a56; }
+.status-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.status-btn { display: inline-flex; align-items: center; height: 46px; padding: 0 20px; border-radius: 12px; border: 0; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; color: #fff; background: linear-gradient(120deg, #013126, #035748 45%, #028c74); }
+.status-btn.ghost { background: #fff; color: #013126; border: 1px solid #e2dbd2; }
+
+/* A page the signed-in role cannot use (inside the app) */
+.no-access { max-width: 520px; margin: 12vh auto 0; text-align: center; padding: 0 20px; }
+.no-access h2 { margin: 0 0 8px; font-size: 22px; color: var(--text-primary); }
+.no-access p { margin: 0 0 22px; color: var(--text-muted); font-size: 14px; }
+
+/* =====================================================================================
+   Responsive layout (tablets and phones)
+   ===================================================================================== */
+
+/* ---- top bar pieces (desktop) ---- */
+.topbar-title { margin: 0; }
+.topbar-tools { display: flex; align-items: center; gap: 10px; }
+.feed-badge { gap: 5px; padding: 3px 8px; border-radius: 12px; border: 1px solid currentColor; font-size: 11px; white-space: nowrap; }
+.feed-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
+.topbar-user { display: inline-flex; flex-direction: column; line-height: 1.2; text-align: right; }
+.topbar-user b { font-size: 12.5px; }
+.topbar-user span { font-size: 11px; color: var(--text-dim); }
+.global-search { position: relative; }
+.global-search-input { width: 220px; font-size: 12px; }
+.global-search-results { width: 280px; }
+.account { position: relative; display: none; }
+.account-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-weight: 700; font-size: 12.5px; letter-spacing: .02em; cursor: pointer; }
+.account-menu { position: absolute; right: 0; top: calc(100% + 8px); width: min(290px, calc(100vw - 24px)); z-index: 60; display: flex; flex-direction: column; gap: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, .18); }
+.account-who { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--text-muted); overflow-wrap: anywhere; }
+.account-who b { font-size: 14.5px; color: var(--text-primary); }
+.account-role { margin-top: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.account-row { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-dim); }
+.account-row select { width: 100%; height: 40px; }
+.account-signout { width: 100%; justify-content: center; height: 40px; }
+
+/* ---- wide tables scroll sideways inside their card instead of stretching the page ---- */
+.table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+
+/* ---- tablets: side panels with fixed widths stack ---- */
+@media (max-width: 900px) {
+  .stack-md { grid-template-columns: minmax(0, 1fr) !important; }
+
+  /* compact top bar: [menu] [title] ........ [feed] [theme] [account] / [search, full width] */
+  .topbar { padding: 8px 14px; gap: 8px 10px; }
+  .topbar-left { flex: 1 1 0; gap: 10px; }
+  .topbar-right { display: contents; }
+  .topbar-tools { order: 2; gap: 8px; flex: none; }
+  .topbar-search { order: 3; flex: 1 1 100%; }
+  .global-search-input { width: 100%; height: 40px; }
+  .global-search-results { left: 0; right: 0; width: auto; }
+  .topbar-wide { display: none !important; }
+  .account { display: block; }
+  .hamburger-btn { width: 36px !important; height: 36px !important; }
+  .theme-toggle-btn { width: 36px; height: 36px; }
+}
+
+/* ---- phones ---- */
+@media (max-width: 760px) {
+  .content select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+  .toolbar-wrap { flex: 1 1 100%; min-width: 0; }
+  .toolbar-wrap > * { min-width: 0; }
+  .toolbar-wrap > select { width: 100%; }
+  .stack-sm { grid-template-columns: minmax(0, 1fr) !important; }
+  .content { padding: 14px 12px 32px; }
+  .card { padding: 14px; }
+  .topbar-title { font-size: 16px; }
+  .feed-badge { padding: 3px 7px; font-size: 10px; }
+
+  /* table columns keep a readable width; the table scrolls sideways when there are many */
+  .table-scroll > .data-table th { white-space: nowrap; }
+  .table-scroll > .data-table td:first-child { min-width: 120px; }
+  .table-scroll > .data-table:has(tr > :nth-child(4)) { min-width: 500px; }
+  .table-scroll > .data-table:has(tr > :nth-child(6)) { min-width: 660px; }
+
+  /* filter lists become rows of chips */
+  .filter-list { flex-direction: row !important; flex-wrap: wrap; }
+  .filter-list > .btn { flex: 0 0 auto; }
+  .toolbar-wrap > select { flex: 1 1 100%; height: 40px !important; }
+  .toolbar-wrap > .btn { flex: 1 1 0; justify-content: center; }
+}
+@media (max-width: 640px) {
+  .tiles-sm-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* ---- touch screens: comfortable tap targets, and no zoom-in when a field gets focus (iOS zooms below 16px) ---- */
+@media (pointer: coarse) {
+  .btn { min-height: 36px; }
+  .select-control { min-height: 36px; }
+  input[type='text'], input[type='search'], input[type='email'], input[type='tel'], input[type='password'], input[type='number'], textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Maps and the 3D globe keep their internal layers (Leaflet uses z-index 400-1000) inside their own box,
+   so menus, drawers and dropdowns always draw on top of them. */
+.leaflet-container, .tactical-globe-wrapper { isolation: isolate; }

@@ -1,0 +1,2105 @@
+{
+ "generated_at": "2026-11-20T08:20:57.211935+00:00",
+ "districts": {
+  "wayanad": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 11.62764,
+     "lon": 76.11569,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 833.0,
+     "id": "wayanad-h1",
+     "terrain": {
+      "elevation_m": 833.0,
+      "slope_deg": 15.9,
+      "slope_mean_150m_deg": 29.1,
+      "aspect_deg": 22.0,
+      "curvature": 1.664,
+      "flow_accumulation_cells": 1,
+      "twi": 4.68,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.65681,
+     "lon": 76.19236,
+     "slope_mean_150m_deg": 30.0,
+     "elevation_m": 850.3,
+     "id": "wayanad-h2",
+     "terrain": {
+      "elevation_m": 850.3,
+      "slope_deg": 51.8,
+      "slope_mean_150m_deg": 28.5,
+      "aspect_deg": 270.0,
+      "curvature": 2.236,
+      "flow_accumulation_cells": 2,
+      "twi": 3.87,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.61097,
+     "lon": 76.12653,
+     "slope_mean_150m_deg": 31.0,
+     "elevation_m": 827.8,
+     "id": "wayanad-h3",
+     "terrain": {
+      "elevation_m": 817.6,
+      "slope_deg": 40.4,
+      "slope_mean_150m_deg": 26.6,
+      "aspect_deg": 79.0,
+      "curvature": -1.534,
+      "flow_accumulation_cells": 2,
+      "twi": 4.27,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.61458,
+     "lon": 76.10292,
+     "slope_mean_150m_deg": 32.5,
+     "elevation_m": 967.8,
+     "id": "wayanad-h4",
+     "terrain": {
+      "elevation_m": 978.3,
+      "slope_deg": 25.0,
+      "slope_mean_150m_deg": 30.2,
+      "aspect_deg": 311.0,
+      "curvature": -2.2,
+      "flow_accumulation_cells": 21,
+      "twi": 7.23,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.63458,
+     "lon": 76.19903,
+     "slope_mean_150m_deg": 30.9,
+     "elevation_m": 859.8,
+     "id": "wayanad-h5",
+     "terrain": {
+      "elevation_m": 859.8,
+      "slope_deg": 32.2,
+      "slope_mean_150m_deg": 30.3,
+      "aspect_deg": 271.0,
+      "curvature": 0.075,
+      "flow_accumulation_cells": 11,
+      "twi": 6.28,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    }
+   ]
+  },
+  "idukki": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 9.84986,
+     "lon": 76.97264,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 708.8,
+     "id": "idukki-h1",
+     "terrain": {
+      "elevation_m": 723.0,
+      "slope_deg": 29.7,
+      "slope_mean_150m_deg": 25.7,
+      "aspect_deg": 67.0,
+      "curvature": 2.331,
+      "flow_accumulation_cells": 1,
+      "twi": 3.98,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.6
+     }
+    },
+    {
+     "lat": 9.83569,
+     "lon": 76.96125,
+     "slope_mean_150m_deg": 32.0,
+     "elevation_m": 796.2,
+     "id": "idukki-h2",
+     "terrain": {
+      "elevation_m": 774.1,
+      "slope_deg": 19.6,
+      "slope_mean_150m_deg": 30.0,
+      "aspect_deg": 168.0,
+      "curvature": -3.174,
+      "flow_accumulation_cells": 28,
+      "twi": 7.78,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.6
+     }
+    },
+    {
+     "lat": 9.83542,
+     "lon": 76.98375,
+     "slope_mean_150m_deg": 33.0,
+     "elevation_m": 768.0,
+     "id": "idukki-h3",
+     "terrain": {
+      "elevation_m": 768.0,
+      "slope_deg": 36.8,
+      "slope_mean_150m_deg": 29.8,
+      "aspect_deg": 246.0,
+      "curvature": 4.504,
+      "flow_accumulation_cells": 1,
+      "twi": 3.71,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.6
+     }
+    },
+    {
+     "lat": 9.85458,
+     "lon": 76.95431,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 702.5,
+     "id": "idukki-h4",
+     "terrain": {
+      "elevation_m": 720.6,
+      "slope_deg": 30.1,
+      "slope_mean_150m_deg": 25.9,
+      "aspect_deg": 86.0,
+      "curvature": -0.341,
+      "flow_accumulation_cells": 4,
+      "twi": 5.35,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.6
+     }
+    },
+    {
+     "lat": 9.86958,
+     "lon": 76.96486,
+     "slope_mean_150m_deg": 32.7,
+     "elevation_m": 586.7,
+     "id": "idukki-h5",
+     "terrain": {
+      "elevation_m": 607.3,
+      "slope_deg": 35.8,
+      "slope_mean_150m_deg": 29.8,
+      "aspect_deg": 88.0,
+      "curvature": -0.851,
+      "flow_accumulation_cells": 3,
+      "twi": 4.85,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.6
+     }
+    }
+   ]
+  },
+  "raigad": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 18.23292,
+     "lon": 73.44458,
+     "slope_mean_150m_deg": 30.6,
+     "elevation_m": 767.4,
+     "id": "raigad-h1",
+     "terrain": {
+      "elevation_m": 775.8,
+      "slope_deg": 18.9,
+      "slope_mean_150m_deg": 24.2,
+      "aspect_deg": 127.0,
+      "curvature": 0.972,
+      "flow_accumulation_cells": 1,
+      "twi": 4.48,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 18.22958,
+     "lon": 73.46319,
+     "slope_mean_150m_deg": 33.8,
+     "elevation_m": 517.3,
+     "id": "raigad-h2",
+     "terrain": {
+      "elevation_m": 494.9,
+      "slope_deg": 42.8,
+      "slope_mean_150m_deg": 25.9,
+      "aspect_deg": 246.0,
+      "curvature": 6.678,
+      "flow_accumulation_cells": 1,
+      "twi": 3.48,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 18.21931,
+     "lon": 73.43208,
+     "slope_mean_150m_deg": 31.3,
+     "elevation_m": 211.2,
+     "id": "raigad-h3",
+     "terrain": {
+      "elevation_m": 211.2,
+      "slope_deg": 25.4,
+      "slope_mean_150m_deg": 27.7,
+      "aspect_deg": 320.0,
+      "curvature": 1.138,
+      "flow_accumulation_cells": 2,
+      "twi": 4.84,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 18.25014,
+     "lon": 73.43153,
+     "slope_mean_150m_deg": 31.0,
+     "elevation_m": 207.4,
+     "id": "raigad-h4",
+     "terrain": {
+      "elevation_m": 226.6,
+      "slope_deg": 43.3,
+      "slope_mean_150m_deg": 25.5,
+      "aspect_deg": 92.0,
+      "curvature": 1.375,
+      "flow_accumulation_cells": 2,
+      "twi": 4.16,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 18.25819,
+     "lon": 73.44847,
+     "slope_mean_150m_deg": 34.5,
+     "elevation_m": 253.9,
+     "id": "raigad-h5",
+     "terrain": {
+      "elevation_m": 253.9,
+      "slope_deg": 50.3,
+      "slope_mean_150m_deg": 28.8,
+      "aspect_deg": 183.0,
+      "curvature": 5.07,
+      "flow_accumulation_cells": 1,
+      "twi": 3.22,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    }
+   ]
+  },
+  "pune": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 19.15875,
+     "lon": 73.68569,
+     "slope_mean_150m_deg": 31.0,
+     "elevation_m": 815.6,
+     "id": "pune-h1",
+     "terrain": {
+      "elevation_m": 834.1,
+      "slope_deg": 34.4,
+      "slope_mean_150m_deg": 28.1,
+      "aspect_deg": 149.0,
+      "curvature": -0.372,
+      "flow_accumulation_cells": 2,
+      "twi": 4.47,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 19.14819,
+     "lon": 73.70153,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 813.5,
+     "id": "pune-h2",
+     "terrain": {
+      "elevation_m": 811.1,
+      "slope_deg": 24.9,
+      "slope_mean_150m_deg": 26.7,
+      "aspect_deg": 282.0,
+      "curvature": -0.747,
+      "flow_accumulation_cells": 2,
+      "twi": 4.86,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 19.16764,
+     "lon": 73.70236,
+     "slope_mean_150m_deg": 30.8,
+     "elevation_m": 933.7,
+     "id": "pune-h3",
+     "terrain": {
+      "elevation_m": 933.7,
+      "slope_deg": 32.8,
+      "slope_mean_150m_deg": 28.8,
+      "aspect_deg": 334.0,
+      "curvature": 2.007,
+      "flow_accumulation_cells": 1,
+      "twi": 3.84,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 19.14181,
+     "lon": 73.67569,
+     "slope_mean_150m_deg": 30.1,
+     "elevation_m": 980.2,
+     "id": "pune-h4",
+     "terrain": {
+      "elevation_m": 999.9,
+      "slope_deg": 35.2,
+      "slope_mean_150m_deg": 27.9,
+      "aspect_deg": 152.0,
+      "curvature": -0.973,
+      "flow_accumulation_cells": 3,
+      "twi": 4.85,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    },
+    {
+     "lat": 19.16931,
+     "lon": 73.66986,
+     "slope_mean_150m_deg": 30.6,
+     "elevation_m": 813.6,
+     "id": "pune-h5",
+     "terrain": {
+      "elevation_m": 813.6,
+      "slope_deg": 31.3,
+      "slope_mean_150m_deg": 27.0,
+      "aspect_deg": 57.0,
+      "curvature": -0.93,
+      "flow_accumulation_cells": 4,
+      "twi": 5.28,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.0
+     }
+    }
+   ]
+  },
+  "nilgiris": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 11.39903,
+     "lon": 76.70986,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 2366.3,
+     "id": "nilgiris-h1",
+     "terrain": {
+      "elevation_m": 2366.3,
+      "slope_deg": 26.7,
+      "slope_mean_150m_deg": 28.3,
+      "aspect_deg": 304.0,
+      "curvature": -4.81,
+      "flow_accumulation_cells": 18,
+      "twi": 7.0,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.42347,
+     "lon": 76.71125,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 2335.6,
+     "id": "nilgiris-h2",
+     "terrain": {
+      "elevation_m": 2318.5,
+      "slope_deg": 26.4,
+      "slope_mean_150m_deg": 28.9,
+      "aspect_deg": 237.0,
+      "curvature": -1.216,
+      "flow_accumulation_cells": 19,
+      "twi": 7.06,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.38042,
+     "lon": 76.69514,
+     "slope_mean_150m_deg": 30.0,
+     "elevation_m": 2200.0,
+     "id": "nilgiris-h3",
+     "terrain": {
+      "elevation_m": 2200.0,
+      "slope_deg": 28.8,
+      "slope_mean_150m_deg": 29.2,
+      "aspect_deg": 295.0,
+      "curvature": -0.394,
+      "flow_accumulation_cells": 3,
+      "twi": 5.11,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.40319,
+     "lon": 76.72792,
+     "slope_mean_150m_deg": 30.9,
+     "elevation_m": 2497.8,
+     "id": "nilgiris-h4",
+     "terrain": {
+      "elevation_m": 2497.8,
+      "slope_deg": 20.7,
+      "slope_mean_150m_deg": 30.6,
+      "aspect_deg": 266.0,
+      "curvature": 1.53,
+      "flow_accumulation_cells": 1,
+      "twi": 4.39,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    },
+    {
+     "lat": 11.42486,
+     "lon": 76.72958,
+     "slope_mean_150m_deg": 32.8,
+     "elevation_m": 2498.4,
+     "id": "nilgiris-h5",
+     "terrain": {
+      "elevation_m": 2498.4,
+      "slope_deg": 21.7,
+      "slope_mean_150m_deg": 29.4,
+      "aspect_deg": 45.0,
+      "curvature": -3.671,
+      "flow_accumulation_cells": 15,
+      "twi": 7.05,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 30.5
+     }
+    }
+   ]
+  },
+  "rudraprayag": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 30.28125,
+     "lon": 78.98153,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 734.3,
+     "id": "rudraprayag-h1",
+     "terrain": {
+      "elevation_m": 734.3,
+      "slope_deg": 30.3,
+      "slope_mean_150m_deg": 29.2,
+      "aspect_deg": 74.0,
+      "curvature": 0.041,
+      "flow_accumulation_cells": 2,
+      "twi": 4.58,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.29931,
+     "lon": 78.98014,
+     "slope_mean_150m_deg": 39.4,
+     "elevation_m": 732.2,
+     "id": "rudraprayag-h2",
+     "terrain": {
+      "elevation_m": 732.2,
+      "slope_deg": 48.9,
+      "slope_mean_150m_deg": 38.2,
+      "aspect_deg": 297.0,
+      "curvature": -2.27,
+      "flow_accumulation_cells": 2,
+      "twi": 3.91,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.28903,
+     "lon": 78.96264,
+     "slope_mean_150m_deg": 34.4,
+     "elevation_m": 1124.2,
+     "id": "rudraprayag-h3",
+     "terrain": {
+      "elevation_m": 1124.2,
+      "slope_deg": 35.0,
+      "slope_mean_150m_deg": 30.7,
+      "aspect_deg": 208.0,
+      "curvature": 3.336,
+      "flow_accumulation_cells": 1,
+      "twi": 3.71,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.28542,
+     "lon": 79.00181,
+     "slope_mean_150m_deg": 35.6,
+     "elevation_m": 1237.5,
+     "id": "rudraprayag-h4",
+     "terrain": {
+      "elevation_m": 1237.5,
+      "slope_deg": 44.1,
+      "slope_mean_150m_deg": 34.4,
+      "aspect_deg": 322.0,
+      "curvature": -0.591,
+      "flow_accumulation_cells": 2,
+      "twi": 4.08,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.27097,
+     "lon": 78.96431,
+     "slope_mean_150m_deg": 40.7,
+     "elevation_m": 917.5,
+     "id": "rudraprayag-h5",
+     "terrain": {
+      "elevation_m": 917.5,
+      "slope_deg": 47.4,
+      "slope_mean_150m_deg": 36.4,
+      "aspect_deg": 276.0,
+      "curvature": 0.328,
+      "flow_accumulation_cells": 2,
+      "twi": 3.96,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    }
+   ]
+  },
+  "chamoli": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 30.55708,
+     "lon": 79.56708,
+     "slope_mean_150m_deg": 33.9,
+     "elevation_m": 1785.7,
+     "id": "chamoli-h1",
+     "terrain": {
+      "elevation_m": 1763.8,
+      "slope_deg": 34.3,
+      "slope_mean_150m_deg": 30.2,
+      "aspect_deg": 6.0,
+      "curvature": -0.218,
+      "flow_accumulation_cells": 3,
+      "twi": 4.83,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.54208,
+     "lon": 79.57875,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 2167.4,
+     "id": "chamoli-h2",
+     "terrain": {
+      "elevation_m": 2167.4,
+      "slope_deg": 41.0,
+      "slope_mean_150m_deg": 26.4,
+      "aspect_deg": 353.0,
+      "curvature": -1.807,
+      "flow_accumulation_cells": 2,
+      "twi": 4.19,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.54681,
+     "lon": 79.54986,
+     "slope_mean_150m_deg": 33.5,
+     "elevation_m": 2399.4,
+     "id": "chamoli-h3",
+     "terrain": {
+      "elevation_m": 2399.4,
+      "slope_deg": 37.7,
+      "slope_mean_150m_deg": 30.1,
+      "aspect_deg": 54.0,
+      "curvature": -3.074,
+      "flow_accumulation_cells": 3,
+      "twi": 4.71,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.56153,
+     "lon": 79.58736,
+     "slope_mean_150m_deg": 44.5,
+     "elevation_m": 2094.5,
+     "id": "chamoli-h4",
+     "terrain": {
+      "elevation_m": 2094.5,
+      "slope_deg": 54.1,
+      "slope_mean_150m_deg": 44.9,
+      "aspect_deg": 201.0,
+      "curvature": -0.977,
+      "flow_accumulation_cells": 24,
+      "twi": 6.2,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.56625,
+     "lon": 79.54903,
+     "slope_mean_150m_deg": 39.6,
+     "elevation_m": 1458.5,
+     "id": "chamoli-h5",
+     "terrain": {
+      "elevation_m": 1458.5,
+      "slope_deg": 54.3,
+      "slope_mean_150m_deg": 35.8,
+      "aspect_deg": 328.0,
+      "curvature": 1.349,
+      "flow_accumulation_cells": 2,
+      "twi": 3.71,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    }
+   ]
+  },
+  "tehri": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 30.37958,
+     "lon": 78.47708,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 846.9,
+     "id": "tehri-h1",
+     "terrain": {
+      "elevation_m": 839.0,
+      "slope_deg": 19.5,
+      "slope_mean_150m_deg": 25.3,
+      "aspect_deg": 122.0,
+      "curvature": 1.604,
+      "flow_accumulation_cells": 1,
+      "twi": 4.39,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.37986,
+     "lon": 78.49792,
+     "slope_mean_150m_deg": 31.5,
+     "elevation_m": 857.0,
+     "id": "tehri-h2",
+     "terrain": {
+      "elevation_m": 857.0,
+      "slope_deg": 51.6,
+      "slope_mean_150m_deg": 30.6,
+      "aspect_deg": 339.0,
+      "curvature": 0.547,
+      "flow_accumulation_cells": 1,
+      "twi": 3.12,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.36375,
+     "lon": 78.48736,
+     "slope_mean_150m_deg": 31.6,
+     "elevation_m": 906.6,
+     "id": "tehri-h3",
+     "terrain": {
+      "elevation_m": 906.6,
+      "slope_deg": 41.7,
+      "slope_mean_150m_deg": 29.0,
+      "aspect_deg": 269.0,
+      "curvature": 1.431,
+      "flow_accumulation_cells": 2,
+      "twi": 4.16,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.39625,
+     "lon": 78.48847,
+     "slope_mean_150m_deg": 32.0,
+     "elevation_m": 845.5,
+     "id": "tehri-h4",
+     "terrain": {
+      "elevation_m": 843.6,
+      "slope_deg": 39.4,
+      "slope_mean_150m_deg": 33.2,
+      "aspect_deg": 280.0,
+      "curvature": -2.26,
+      "flow_accumulation_cells": 9,
+      "twi": 5.75,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    },
+    {
+     "lat": 30.39264,
+     "lon": 78.46264,
+     "slope_mean_150m_deg": 32.7,
+     "elevation_m": 898.1,
+     "id": "tehri-h5",
+     "terrain": {
+      "elevation_m": 898.1,
+      "slope_deg": 46.6,
+      "slope_mean_150m_deg": 32.4,
+      "aspect_deg": 55.0,
+      "curvature": -6.666,
+      "flow_accumulation_cells": 4,
+      "twi": 4.68,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.7
+     }
+    }
+   ]
+  },
+  "mandi": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 31.70486,
+     "lon": 76.93319,
+     "slope_mean_150m_deg": 31.3,
+     "elevation_m": 807.1,
+     "id": "mandi-h1",
+     "terrain": {
+      "elevation_m": 807.1,
+      "slope_deg": 28.0,
+      "slope_mean_150m_deg": 28.8,
+      "aspect_deg": 76.0,
+      "curvature": 0.523,
+      "flow_accumulation_cells": 2,
+      "twi": 4.67,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.72264,
+     "lon": 76.92931,
+     "slope_mean_150m_deg": 30.6,
+     "elevation_m": 803.1,
+     "id": "mandi-h2",
+     "terrain": {
+      "elevation_m": 803.1,
+      "slope_deg": 47.0,
+      "slope_mean_150m_deg": 28.4,
+      "aspect_deg": 76.0,
+      "curvature": -3.455,
+      "flow_accumulation_cells": 2,
+      "twi": 3.97,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.71542,
+     "lon": 76.95069,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 1242.4,
+     "id": "mandi-h3",
+     "terrain": {
+      "elevation_m": 1242.4,
+      "slope_deg": 30.6,
+      "slope_mean_150m_deg": 28.1,
+      "aspect_deg": 89.0,
+      "curvature": -0.952,
+      "flow_accumulation_cells": 9,
+      "twi": 6.07,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.69292,
+     "lon": 76.91708,
+     "slope_mean_150m_deg": 32.2,
+     "elevation_m": 1052.5,
+     "id": "mandi-h4",
+     "terrain": {
+      "elevation_m": 1052.5,
+      "slope_deg": 44.8,
+      "slope_mean_150m_deg": 30.7,
+      "aspect_deg": 120.0,
+      "curvature": -3.416,
+      "flow_accumulation_cells": 3,
+      "twi": 4.45,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.69458,
+     "lon": 76.95069,
+     "slope_mean_150m_deg": 31.1,
+     "elevation_m": 834.7,
+     "id": "mandi-h5",
+     "terrain": {
+      "elevation_m": 820.2,
+      "slope_deg": 38.0,
+      "slope_mean_150m_deg": 25.2,
+      "aspect_deg": 11.0,
+      "curvature": -1.404,
+      "flow_accumulation_cells": 2,
+      "twi": 4.29,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    }
+   ]
+  },
+  "shimla": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 31.10597,
+     "lon": 77.17264,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 2157.6,
+     "id": "shimla-h1",
+     "terrain": {
+      "elevation_m": 2179.6,
+      "slope_deg": 34.7,
+      "slope_mean_150m_deg": 28.0,
+      "aspect_deg": 27.0,
+      "curvature": 0.82,
+      "flow_accumulation_cells": 2,
+      "twi": 4.41,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.6
+     }
+    },
+    {
+     "lat": 31.09042,
+     "lon": 77.18347,
+     "slope_mean_150m_deg": 32.5,
+     "elevation_m": 2091.9,
+     "id": "shimla-h2",
+     "terrain": {
+      "elevation_m": 2107.3,
+      "slope_deg": 49.8,
+      "slope_mean_150m_deg": 29.7,
+      "aspect_deg": 59.0,
+      "curvature": 6.247,
+      "flow_accumulation_cells": 1,
+      "twi": 3.18,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.6
+     }
+    },
+    {
+     "lat": 31.10625,
+     "lon": 77.19375,
+     "slope_mean_150m_deg": 32.6,
+     "elevation_m": 2164.5,
+     "id": "shimla-h3",
+     "terrain": {
+      "elevation_m": 2179.0,
+      "slope_deg": 43.2,
+      "slope_mean_150m_deg": 29.3,
+      "aspect_deg": 21.0,
+      "curvature": -0.576,
+      "flow_accumulation_cells": 2,
+      "twi": 4.1,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.6
+     }
+    },
+    {
+     "lat": 31.09847,
+     "lon": 77.15347,
+     "slope_mean_150m_deg": 31.4,
+     "elevation_m": 1951.1,
+     "id": "shimla-h4",
+     "terrain": {
+      "elevation_m": 1951.1,
+      "slope_deg": 40.8,
+      "slope_mean_150m_deg": 27.7,
+      "aspect_deg": 100.0,
+      "curvature": 2.549,
+      "flow_accumulation_cells": 2,
+      "twi": 4.19,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.6
+     }
+    },
+    {
+     "lat": 31.12181,
+     "lon": 77.18292,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 2013.4,
+     "id": "shimla-h5",
+     "terrain": {
+      "elevation_m": 2009.3,
+      "slope_deg": 30.4,
+      "slope_mean_150m_deg": 29.8,
+      "aspect_deg": 20.0,
+      "curvature": -3.821,
+      "flow_accumulation_cells": 12,
+      "twi": 6.37,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.6
+     }
+    }
+   ]
+  },
+  "kullu": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 31.95986,
+     "lon": 77.10653,
+     "slope_mean_150m_deg": 31.1,
+     "elevation_m": 1283.7,
+     "id": "kullu-h1",
+     "terrain": {
+      "elevation_m": 1283.7,
+      "slope_deg": 27.5,
+      "slope_mean_150m_deg": 27.1,
+      "aspect_deg": 103.0,
+      "curvature": -2.441,
+      "flow_accumulation_cells": 55,
+      "twi": 8.0,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.94292,
+     "lon": 77.11542,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 1242.2,
+     "id": "kullu-h2",
+     "terrain": {
+      "elevation_m": 1242.2,
+      "slope_deg": 26.8,
+      "slope_mean_150m_deg": 29.1,
+      "aspect_deg": 268.0,
+      "curvature": 0.108,
+      "flow_accumulation_cells": 6,
+      "twi": 5.82,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.97208,
+     "lon": 77.12236,
+     "slope_mean_150m_deg": 30.2,
+     "elevation_m": 1216.3,
+     "id": "kullu-h3",
+     "terrain": {
+      "elevation_m": 1216.3,
+      "slope_deg": 51.9,
+      "slope_mean_150m_deg": 32.4,
+      "aspect_deg": 125.0,
+      "curvature": -4.552,
+      "flow_accumulation_cells": 4,
+      "twi": 4.49,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.94569,
+     "lon": 77.09236,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 2005.1,
+     "id": "kullu-h4",
+     "terrain": {
+      "elevation_m": 2005.1,
+      "slope_deg": 28.0,
+      "slope_mean_150m_deg": 28.3,
+      "aspect_deg": 93.0,
+      "curvature": -2.425,
+      "flow_accumulation_cells": 5,
+      "twi": 5.58,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    },
+    {
+     "lat": 31.97764,
+     "lon": 77.10208,
+     "slope_mean_150m_deg": 35.5,
+     "elevation_m": 2093.9,
+     "id": "kullu-h5",
+     "terrain": {
+      "elevation_m": 2107.7,
+      "slope_deg": 31.5,
+      "slope_mean_150m_deg": 29.3,
+      "aspect_deg": 221.0,
+      "curvature": 0.662,
+      "flow_accumulation_cells": 2,
+      "twi": 4.53,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.5
+     }
+    }
+   ]
+  },
+  "ramban": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 33.24208,
+     "lon": 75.24181,
+     "slope_mean_150m_deg": 31.1,
+     "elevation_m": 814.2,
+     "id": "ramban-h1",
+     "terrain": {
+      "elevation_m": 814.2,
+      "slope_deg": 47.0,
+      "slope_mean_150m_deg": 29.6,
+      "aspect_deg": 265.0,
+      "curvature": 3.53,
+      "flow_accumulation_cells": 2,
+      "twi": 3.96,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.3
+     }
+    },
+    {
+     "lat": 33.24653,
+     "lon": 75.22097,
+     "slope_mean_150m_deg": 36.2,
+     "elevation_m": 765.0,
+     "id": "ramban-h2",
+     "terrain": {
+      "elevation_m": 765.0,
+      "slope_deg": 24.2,
+      "slope_mean_150m_deg": 36.7,
+      "aspect_deg": 154.0,
+      "curvature": 4.208,
+      "flow_accumulation_cells": 1,
+      "twi": 4.13,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.3
+     }
+    },
+    {
+     "lat": 33.22819,
+     "lon": 75.22792,
+     "slope_mean_150m_deg": 32.2,
+     "elevation_m": 1119.6,
+     "id": "ramban-h3",
+     "terrain": {
+      "elevation_m": 1097.4,
+      "slope_deg": 36.3,
+      "slope_mean_150m_deg": 29.0,
+      "aspect_deg": 85.0,
+      "curvature": -1.506,
+      "flow_accumulation_cells": 3,
+      "twi": 4.74,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.3
+     }
+    },
+    {
+     "lat": 33.25958,
+     "lon": 75.23625,
+     "slope_mean_150m_deg": 34.9,
+     "elevation_m": 1339.4,
+     "id": "ramban-h4",
+     "terrain": {
+      "elevation_m": 1339.4,
+      "slope_deg": 42.5,
+      "slope_mean_150m_deg": 36.2,
+      "aspect_deg": 269.0,
+      "curvature": -3.556,
+      "flow_accumulation_cells": 2,
+      "twi": 4.11,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.3
+     }
+    },
+    {
+     "lat": 33.22847,
+     "lon": 75.25597,
+     "slope_mean_150m_deg": 35.4,
+     "elevation_m": 831.7,
+     "id": "ramban-h5",
+     "terrain": {
+      "elevation_m": 831.7,
+      "slope_deg": 27.9,
+      "slope_mean_150m_deg": 34.8,
+      "aspect_deg": 226.0,
+      "curvature": 1.751,
+      "flow_accumulation_cells": 1,
+      "twi": 3.97,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 28.3
+     }
+    }
+   ]
+  },
+  "noney": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 24.78319,
+     "lon": 93.63236,
+     "slope_mean_150m_deg": 33.0,
+     "elevation_m": 1218.8,
+     "id": "noney-h1",
+     "terrain": {
+      "elevation_m": 1218.8,
+      "slope_deg": 49.7,
+      "slope_mean_150m_deg": 30.5,
+      "aspect_deg": 109.0,
+      "curvature": 2.327,
+      "flow_accumulation_cells": 3,
+      "twi": 4.31,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.77958,
+     "lon": 93.61292,
+     "slope_mean_150m_deg": 31.1,
+     "elevation_m": 686.3,
+     "id": "noney-h2",
+     "terrain": {
+      "elevation_m": 681.3,
+      "slope_deg": 24.9,
+      "slope_mean_150m_deg": 24.6,
+      "aspect_deg": 278.0,
+      "curvature": -1.297,
+      "flow_accumulation_cells": 2,
+      "twi": 4.84,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.80014,
+     "lon": 93.62542,
+     "slope_mean_150m_deg": 32.0,
+     "elevation_m": 1362.8,
+     "id": "noney-h3",
+     "terrain": {
+      "elevation_m": 1362.8,
+      "slope_deg": 48.4,
+      "slope_mean_150m_deg": 31.2,
+      "aspect_deg": 42.0,
+      "curvature": 8.631,
+      "flow_accumulation_cells": 2,
+      "twi": 3.95,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.76875,
+     "lon": 93.64431,
+     "slope_mean_150m_deg": 30.9,
+     "elevation_m": 1312.8,
+     "id": "noney-h4",
+     "terrain": {
+      "elevation_m": 1294.3,
+      "slope_deg": 37.3,
+      "slope_mean_150m_deg": 29.9,
+      "aspect_deg": 138.0,
+      "curvature": -0.672,
+      "flow_accumulation_cells": 2,
+      "twi": 4.34,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.78792,
+     "lon": 93.65264,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 630.3,
+     "id": "noney-h5",
+     "terrain": {
+      "elevation_m": 630.3,
+      "slope_deg": 35.7,
+      "slope_mean_150m_deg": 26.8,
+      "aspect_deg": 303.0,
+      "curvature": -0.511,
+      "flow_accumulation_cells": 2,
+      "twi": 4.4,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    }
+   ]
+  },
+  "tamenglong": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 24.98486,
+     "lon": 93.48986,
+     "slope_mean_150m_deg": 31.4,
+     "elevation_m": 993.7,
+     "id": "tamenglong-h1",
+     "terrain": {
+      "elevation_m": 993.7,
+      "slope_deg": 45.3,
+      "slope_mean_150m_deg": 25.2,
+      "aspect_deg": 287.0,
+      "curvature": -0.053,
+      "flow_accumulation_cells": 3,
+      "twi": 4.47,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.98681,
+     "lon": 93.50958,
+     "slope_mean_150m_deg": 31.6,
+     "elevation_m": 1106.8,
+     "id": "tamenglong-h2",
+     "terrain": {
+      "elevation_m": 1113.9,
+      "slope_deg": 42.9,
+      "slope_mean_150m_deg": 25.9,
+      "aspect_deg": 351.0,
+      "curvature": -1.295,
+      "flow_accumulation_cells": 2,
+      "twi": 4.14,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 25.00153,
+     "lon": 93.49764,
+     "slope_mean_150m_deg": 41.0,
+     "elevation_m": 1020.7,
+     "id": "tamenglong-h3",
+     "terrain": {
+      "elevation_m": 1046.0,
+      "slope_deg": 52.1,
+      "slope_mean_150m_deg": 34.3,
+      "aspect_deg": 14.0,
+      "curvature": 1.546,
+      "flow_accumulation_cells": 2,
+      "twi": 3.82,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.96708,
+     "lon": 93.49375,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 1170.3,
+     "id": "tamenglong-h4",
+     "terrain": {
+      "elevation_m": 1167.9,
+      "slope_deg": 41.8,
+      "slope_mean_150m_deg": 28.4,
+      "aspect_deg": 1.0,
+      "curvature": 0.182,
+      "flow_accumulation_cells": 3,
+      "twi": 4.59,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 24.97542,
+     "lon": 93.47292,
+     "slope_mean_150m_deg": 35.9,
+     "elevation_m": 711.9,
+     "id": "tamenglong-h5",
+     "terrain": {
+      "elevation_m": 711.9,
+      "slope_deg": 43.7,
+      "slope_mean_150m_deg": 34.3,
+      "aspect_deg": 38.0,
+      "curvature": 1.084,
+      "flow_accumulation_cells": 2,
+      "twi": 4.12,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    }
+   ]
+  },
+  "east-sikkim": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 27.33847,
+     "lon": 88.60514,
+     "slope_mean_150m_deg": 30.2,
+     "elevation_m": 1443.1,
+     "id": "east-sikkim-h1",
+     "terrain": {
+      "elevation_m": 1443.1,
+      "slope_deg": 42.1,
+      "slope_mean_150m_deg": 26.7,
+      "aspect_deg": 263.0,
+      "curvature": -3.548,
+      "flow_accumulation_cells": 2,
+      "twi": 4.16,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.1
+     }
+    },
+    {
+     "lat": 27.34347,
+     "lon": 88.62458,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 2091.6,
+     "id": "east-sikkim-h2",
+     "terrain": {
+      "elevation_m": 2081.6,
+      "slope_deg": 44.7,
+      "slope_mean_150m_deg": 28.2,
+      "aspect_deg": 146.0,
+      "curvature": -2.592,
+      "flow_accumulation_cells": 3,
+      "twi": 4.48,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.1
+     }
+    },
+    {
+     "lat": 27.35653,
+     "lon": 88.60653,
+     "slope_mean_150m_deg": 33.5,
+     "elevation_m": 1336.4,
+     "id": "east-sikkim-h3",
+     "terrain": {
+      "elevation_m": 1351.2,
+      "slope_deg": 42.3,
+      "slope_mean_150m_deg": 33.2,
+      "aspect_deg": 150.0,
+      "curvature": -0.419,
+      "flow_accumulation_cells": 2,
+      "twi": 4.15,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.1
+     }
+    },
+    {
+     "lat": 27.32486,
+     "lon": 88.61847,
+     "slope_mean_150m_deg": 36.9,
+     "elevation_m": 1466.6,
+     "id": "east-sikkim-h4",
+     "terrain": {
+      "elevation_m": 1473.4,
+      "slope_deg": 39.3,
+      "slope_mean_150m_deg": 30.2,
+      "aspect_deg": 158.0,
+      "curvature": -4.077,
+      "flow_accumulation_cells": 3,
+      "twi": 4.67,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.1
+     }
+    },
+    {
+     "lat": 27.34847,
+     "lon": 88.58819,
+     "slope_mean_150m_deg": 39.6,
+     "elevation_m": 1271.7,
+     "id": "east-sikkim-h5",
+     "terrain": {
+      "elevation_m": 1295.6,
+      "slope_deg": 46.4,
+      "slope_mean_150m_deg": 38.8,
+      "aspect_deg": 220.0,
+      "curvature": -2.726,
+      "flow_accumulation_cells": 2,
+      "twi": 4.01,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.1
+     }
+    }
+   ]
+  },
+  "aizawl": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 23.72708,
+     "lon": 92.71653,
+     "slope_mean_150m_deg": 33.0,
+     "elevation_m": 991.3,
+     "id": "aizawl-h1",
+     "terrain": {
+      "elevation_m": 1009.1,
+      "slope_deg": 34.7,
+      "slope_mean_150m_deg": 32.0,
+      "aspect_deg": 263.0,
+      "curvature": -3.771,
+      "flow_accumulation_cells": 22,
+      "twi": 6.84,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.74014,
+     "lon": 92.73014,
+     "slope_mean_150m_deg": 31.5,
+     "elevation_m": 868.2,
+     "id": "aizawl-h2",
+     "terrain": {
+      "elevation_m": 868.2,
+      "slope_deg": 45.0,
+      "slope_mean_150m_deg": 25.7,
+      "aspect_deg": 112.0,
+      "curvature": 2.895,
+      "flow_accumulation_cells": 2,
+      "twi": 4.07,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.70986,
+     "lon": 92.72264,
+     "slope_mean_150m_deg": 33.0,
+     "elevation_m": 915.6,
+     "id": "aizawl-h3",
+     "terrain": {
+      "elevation_m": 915.7,
+      "slope_deg": 40.6,
+      "slope_mean_150m_deg": 31.7,
+      "aspect_deg": 182.0,
+      "curvature": -0.396,
+      "flow_accumulation_cells": 2,
+      "twi": 4.23,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.74458,
+     "lon": 92.71097,
+     "slope_mean_150m_deg": 30.1,
+     "elevation_m": 748.3,
+     "id": "aizawl-h4",
+     "terrain": {
+      "elevation_m": 731.0,
+      "slope_deg": 34.0,
+      "slope_mean_150m_deg": 28.0,
+      "aspect_deg": 297.0,
+      "curvature": -3.572,
+      "flow_accumulation_cells": 3,
+      "twi": 4.87,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.72264,
+     "lon": 92.73736,
+     "slope_mean_150m_deg": 30.1,
+     "elevation_m": 718.5,
+     "id": "aizawl-h5",
+     "terrain": {
+      "elevation_m": 718.5,
+      "slope_deg": 43.3,
+      "slope_mean_150m_deg": 30.6,
+      "aspect_deg": 104.0,
+      "curvature": 0.566,
+      "flow_accumulation_cells": 2,
+      "twi": 4.14,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    }
+   ]
+  },
+  "kohima": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 25.65986,
+     "lon": 94.11375,
+     "slope_mean_150m_deg": 30.0,
+     "elevation_m": 1311.7,
+     "id": "kohima-h1",
+     "terrain": {
+      "elevation_m": 1300.6,
+      "slope_deg": 43.6,
+      "slope_mean_150m_deg": 26.6,
+      "aspect_deg": 72.0,
+      "curvature": 2.644,
+      "flow_accumulation_cells": 2,
+      "twi": 4.12,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.65681,
+     "lon": 94.08986,
+     "slope_mean_150m_deg": 30.2,
+     "elevation_m": 1595.6,
+     "id": "kohima-h2",
+     "terrain": {
+      "elevation_m": 1595.6,
+      "slope_deg": 31.9,
+      "slope_mean_150m_deg": 27.0,
+      "aspect_deg": 21.0,
+      "curvature": 1.472,
+      "flow_accumulation_cells": 1,
+      "twi": 3.85,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.70014,
+     "lon": 94.11958,
+     "slope_mean_150m_deg": 30.1,
+     "elevation_m": 1193.4,
+     "id": "kohima-h3",
+     "terrain": {
+      "elevation_m": 1202.7,
+      "slope_deg": 26.2,
+      "slope_mean_150m_deg": 25.7,
+      "aspect_deg": 301.0,
+      "curvature": 0.869,
+      "flow_accumulation_cells": 1,
+      "twi": 4.09,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.68097,
+     "lon": 94.13792,
+     "slope_mean_150m_deg": 30.9,
+     "elevation_m": 1329.3,
+     "id": "kohima-h4",
+     "terrain": {
+      "elevation_m": 1348.5,
+      "slope_deg": 35.3,
+      "slope_mean_150m_deg": 27.8,
+      "aspect_deg": 207.0,
+      "curvature": 0.201,
+      "flow_accumulation_cells": 2,
+      "twi": 4.41,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.67153,
+     "lon": 94.07819,
+     "slope_mean_150m_deg": 30.7,
+     "elevation_m": 1428.7,
+     "id": "kohima-h5",
+     "terrain": {
+      "elevation_m": 1397.1,
+      "slope_deg": 35.6,
+      "slope_mean_150m_deg": 26.0,
+      "aspect_deg": 53.0,
+      "curvature": -0.945,
+      "flow_accumulation_cells": 3,
+      "twi": 4.81,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    }
+   ]
+  },
+  "dima-hasao": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 25.18375,
+     "lon": 93.02736,
+     "slope_mean_150m_deg": 30.6,
+     "elevation_m": 392.0,
+     "id": "dima-hasao-h1",
+     "terrain": {
+      "elevation_m": 412.8,
+      "slope_deg": 33.7,
+      "slope_mean_150m_deg": 26.9,
+      "aspect_deg": 59.0,
+      "curvature": 0.95,
+      "flow_accumulation_cells": 2,
+      "twi": 4.48,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.18625,
+     "lon": 93.00319,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 741.4,
+     "id": "dima-hasao-h2",
+     "terrain": {
+      "elevation_m": 741.4,
+      "slope_deg": 49.0,
+      "slope_mean_150m_deg": 28.1,
+      "aspect_deg": 270.0,
+      "curvature": 2.364,
+      "flow_accumulation_cells": 2,
+      "twi": 3.93,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.16625,
+     "lon": 93.02208,
+     "slope_mean_150m_deg": 32.8,
+     "elevation_m": 589.2,
+     "id": "dima-hasao-h3",
+     "terrain": {
+      "elevation_m": 603.1,
+      "slope_deg": 30.5,
+      "slope_mean_150m_deg": 31.5,
+      "aspect_deg": 68.0,
+      "curvature": -0.639,
+      "flow_accumulation_cells": 5,
+      "twi": 5.52,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    },
+    {
+     "lat": 25.20236,
+     "lon": 93.02292,
+     "slope_mean_150m_deg": 30.2,
+     "elevation_m": 376.0,
+     "id": "dima-hasao-h4",
+     "terrain": {
+      "elevation_m": 332.6,
+      "slope_deg": 37.1,
+      "slope_mean_150m_deg": 26.9,
+      "aspect_deg": 214.0,
+      "curvature": -3.053,
+      "flow_accumulation_cells": 4,
+      "twi": 5.04,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.16847,
+     "lon": 92.99931,
+     "slope_mean_150m_deg": 32.4,
+     "elevation_m": 678.9,
+     "id": "dima-hasao-h5",
+     "terrain": {
+      "elevation_m": 660.5,
+      "slope_deg": 42.3,
+      "slope_mean_150m_deg": 32.8,
+      "aspect_deg": 264.0,
+      "curvature": -2.485,
+      "flow_accumulation_cells": 2,
+      "twi": 4.17,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.4
+     }
+    }
+   ]
+  },
+  "east-khasi-hills": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 25.58764,
+     "lon": 91.86986,
+     "slope_mean_150m_deg": 32.7,
+     "elevation_m": 1395.0,
+     "id": "east-khasi-hills-h1",
+     "terrain": {
+      "elevation_m": 1362.2,
+      "slope_deg": 48.5,
+      "slope_mean_150m_deg": 33.8,
+      "aspect_deg": 283.0,
+      "curvature": -0.908,
+      "flow_accumulation_cells": 9,
+      "twi": 5.45,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.60681,
+     "lon": 91.87764,
+     "slope_mean_150m_deg": 30.5,
+     "elevation_m": 1344.0,
+     "id": "east-khasi-hills-h2",
+     "terrain": {
+      "elevation_m": 1343.5,
+      "slope_deg": 35.6,
+      "slope_mean_150m_deg": 27.8,
+      "aspect_deg": 356.0,
+      "curvature": -0.381,
+      "flow_accumulation_cells": 6,
+      "twi": 5.5,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.58569,
+     "lon": 91.92792,
+     "slope_mean_150m_deg": 30.1,
+     "elevation_m": 1551.3,
+     "id": "east-khasi-hills-h3",
+     "terrain": {
+      "elevation_m": 1548.2,
+      "slope_deg": 31.0,
+      "slope_mean_150m_deg": 26.0,
+      "aspect_deg": 28.0,
+      "curvature": 1.568,
+      "flow_accumulation_cells": 3,
+      "twi": 4.98,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.54875,
+     "lon": 91.87014,
+     "slope_mean_150m_deg": 30.3,
+     "elevation_m": 1830.1,
+     "id": "east-khasi-hills-h4",
+     "terrain": {
+      "elevation_m": 1830.1,
+      "slope_deg": 34.2,
+      "slope_mean_150m_deg": 27.1,
+      "aspect_deg": 25.0,
+      "curvature": 0.032,
+      "flow_accumulation_cells": 1,
+      "twi": 3.76,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    },
+    {
+     "lat": 25.54208,
+     "lon": 91.90486,
+     "slope_mean_150m_deg": 31.3,
+     "elevation_m": 1735.9,
+     "id": "east-khasi-hills-h5",
+     "terrain": {
+      "elevation_m": 1735.9,
+      "slope_deg": 34.0,
+      "slope_mean_150m_deg": 28.7,
+      "aspect_deg": 111.0,
+      "curvature": -1.62,
+      "flow_accumulation_cells": 16,
+      "twi": 6.54,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.3
+     }
+    }
+   ]
+  },
+  "lower-dibang-valley": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 28.13986,
+     "lon": 95.84958,
+     "slope_mean_150m_deg": 34.3,
+     "elevation_m": 443.6,
+     "id": "lower-dibang-valley-h1",
+     "terrain": {
+      "elevation_m": 443.6,
+      "slope_deg": 42.9,
+      "slope_mean_150m_deg": 33.1,
+      "aspect_deg": 266.0,
+      "curvature": -1.641,
+      "flow_accumulation_cells": 5,
+      "twi": 5.05,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.0
+     }
+    },
+    {
+     "lat": 28.12181,
+     "lon": 95.85264,
+     "slope_mean_150m_deg": 31.6,
+     "elevation_m": 402.9,
+     "id": "lower-dibang-valley-h2",
+     "terrain": {
+      "elevation_m": 386.6,
+      "slope_deg": 37.3,
+      "slope_mean_150m_deg": 29.1,
+      "aspect_deg": 291.0,
+      "curvature": 0.027,
+      "flow_accumulation_cells": 3,
+      "twi": 4.74,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.0
+     }
+    },
+    {
+     "lat": 28.16236,
+     "lon": 95.85042,
+     "slope_mean_150m_deg": 30.4,
+     "elevation_m": 514.8,
+     "id": "lower-dibang-valley-h3",
+     "terrain": {
+      "elevation_m": 514.8,
+      "slope_deg": 45.1,
+      "slope_mean_150m_deg": 29.8,
+      "aspect_deg": 204.0,
+      "curvature": 1.348,
+      "flow_accumulation_cells": 1,
+      "twi": 3.36,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.0
+     }
+    },
+    {
+     "lat": 28.15042,
+     "lon": 95.86625,
+     "slope_mean_150m_deg": 30.6,
+     "elevation_m": 742.5,
+     "id": "lower-dibang-valley-h4",
+     "terrain": {
+      "elevation_m": 742.5,
+      "slope_deg": 29.8,
+      "slope_mean_150m_deg": 29.2,
+      "aspect_deg": 305.0,
+      "curvature": -1.095,
+      "flow_accumulation_cells": 5,
+      "twi": 5.53,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.0
+     }
+    },
+    {
+     "lat": 28.13236,
+     "lon": 95.86931,
+     "slope_mean_150m_deg": 35.2,
+     "elevation_m": 837.4,
+     "id": "lower-dibang-valley-h5",
+     "terrain": {
+      "elevation_m": 857.0,
+      "slope_deg": 40.0,
+      "slope_mean_150m_deg": 32.2,
+      "aspect_deg": 254.0,
+      "curvature": 4.198,
+      "flow_accumulation_cells": 1,
+      "twi": 3.54,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.0
+     }
+    }
+   ]
+  },
+  "khowai": {
+   "source": "Copernicus GLO-30 DEM: 30-45\u00b0 hillslopes nearest the district centre (interim terrain proxy until the GSI map is imported)",
+   "points": [
+    {
+     "lat": 24.03125,
+     "lon": 91.50097,
+     "slope_mean_150m_deg": 20.4,
+     "elevation_m": 100.0,
+     "id": "khowai-h1",
+     "terrain": {
+      "elevation_m": 103.0,
+      "slope_deg": 9.6,
+      "slope_mean_150m_deg": 17.6,
+      "aspect_deg": 54.0,
+      "curvature": 1.712,
+      "flow_accumulation_cells": 1,
+      "twi": 5.16,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 24.01292,
+     "lon": 91.50458,
+     "slope_mean_150m_deg": 20.7,
+     "elevation_m": 108.3,
+     "id": "khowai-h2",
+     "terrain": {
+      "elevation_m": 87.8,
+      "slope_deg": 2.6,
+      "slope_mean_150m_deg": 20.1,
+      "aspect_deg": 215.0,
+      "curvature": -4.948,
+      "flow_accumulation_cells": 15,
+      "twi": 9.17,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.99514,
+     "lon": 91.50986,
+     "slope_mean_150m_deg": 20.4,
+     "elevation_m": 132.8,
+     "id": "khowai-h3",
+     "terrain": {
+      "elevation_m": 135.4,
+      "slope_deg": 16.5,
+      "slope_mean_150m_deg": 17.3,
+      "aspect_deg": 153.0,
+      "curvature": 4.553,
+      "flow_accumulation_cells": 1,
+      "twi": 4.6,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.97875,
+     "lon": 91.51847,
+     "slope_mean_150m_deg": 20.1,
+     "elevation_m": 116.0,
+     "id": "khowai-h4",
+     "terrain": {
+      "elevation_m": 116.0,
+      "slope_deg": 34.6,
+      "slope_mean_150m_deg": 20.2,
+      "aspect_deg": 337.0,
+      "curvature": 0.204,
+      "flow_accumulation_cells": 1,
+      "twi": 3.75,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    },
+    {
+     "lat": 23.96458,
+     "lon": 91.53097,
+     "slope_mean_150m_deg": 20.4,
+     "elevation_m": 113.8,
+     "id": "khowai-h5",
+     "terrain": {
+      "elevation_m": 117.8,
+      "slope_deg": 33.7,
+      "slope_mean_150m_deg": 19.1,
+      "aspect_deg": 13.0,
+      "curvature": -0.399,
+      "flow_accumulation_cells": 2,
+      "twi": 4.48,
+      "source": "Copernicus DEM GLO-30 (AWS Open Data)",
+      "method": "Horn slope, Zevenbergen-Thorne curvature, D8 accumulation in a \u00b13 km window (no pit filling)",
+      "resolution_m": 29.5
+     }
+    }
+   ]
+  }
+ }
+}

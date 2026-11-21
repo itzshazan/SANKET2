@@ -1,0 +1,15 @@
+.sanket-brand { display: inline-flex; align-items: center; gap: 8px; height: 36px; line-height: 1; vertical-align: middle; flex: none; }
+.sanket-brand-symbol { display: block; width: 34px; height: 36px; flex: none; object-fit: contain; }
+.sanket-brand-wordmark { display: block; width: 112px; height: 20px; flex: none; }
+.sanket-brand-inverse .sanket-brand-symbol { height: 34px; border-radius: 9px; }
+.sanket-brand-inverse .sanket-brand-wordmark { filter: brightness(0) invert(1); }
+.sidebar-brand .sanket-brand { gap: 8px; }
+.sidebar-brand .tag { margin-top: 5px; margin-left: 42px; }
+.h-footer-brand .sanket-brand { height: 44px; gap: 10px; }
+.h-footer-brand .sanket-brand-symbol { width: 42px; height: 44px; }
+.h-footer-brand .sanket-brand-wordmark { width: 146px; height: 26px; }
+@media (max-width: 640px) {
+  .h-brand .sanket-brand { height: 30px; gap: 6px; }
+  .h-brand .sanket-brand-symbol { width: 27px; height: 30px; }
+  .h-brand .sanket-brand-wordmark { width: 85px; height: 16px; }
+}

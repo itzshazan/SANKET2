@@ -1,65 +1,56 @@
 import React from 'react';
-import { ROLES } from '../data/mockData.js';
-import { NAV_ITEMS, canAccess } from '../routes.js';
-import { 
-  IconGrid, IconMap, IconMonitor, IconBell, 
-  IconHistory, IconUser, IconLock, IconBarChart, 
-  IconBuilding, IconFileText, IconInfo, IconActivity, IconGlobe
+import { Link, NavLink } from 'react-router';
+import Brand from './Brand.jsx';
+import { NAV_ITEMS, canAccess, pathFor } from '../routes.js';
+import {
+  IconGrid, IconMonitor, IconBell, IconHistory, IconUser, IconLock,
+  IconBuilding, IconFileText, IconInfo, IconGlobe, IconRoad
 } from './icons.jsx';
 
 const ICONS = {
   overview: IconGrid,
   monitor: IconMonitor,
-  'risk-map': IconMap,
   'tactical-3d': IconGlobe,
-  analytics: IconBarChart,
   history: IconHistory,
   infra: IconBuilding,
   alerts: IconBell,
   reports: IconFileText,
-  settings: IconActivity,
-  help: IconInfo,
+  'data-model': IconInfo,
+  'road-blockage': IconRoad,
 };
 
-export default function Sidebar({ view, onNavigate, role, onFieldView, open, onClose }) {
-  const allowed = (navId) => canAccess(navId, role);
-
-  // On mobile the sidebar is an overlay drawer (see the @media block in
-  // index.css) — picking a destination should also close it, otherwise it
-  // stays covering the screen after navigating. onClose is undefined/no-op
-  // on desktop where there's nothing to close, so this is safe everywhere.
-  function navigate(id) {
-    onNavigate(id);
-    onClose?.();
-  }
+// Real links (<a href>), so pages open in a new tab with Ctrl/middle-click and show their URL on hover.
+// On mobile the sidebar is a drawer; the shell closes it whenever the page changes.
+export default function Sidebar({ view, role, districtId, open, onClose }) {
+  const navClass = (id) => ({ isActive }) => `nav-item ${isActive || view === id ? 'active' : ''}`;
 
   return (
-    <nav className={`sidebar ${open ? 'open' : ''}`}>
+    <nav className={`sidebar ${open ? 'open' : ''}`} aria-label="Main">
       <div className="sidebar-brand">
-        <div className="mark">S</div>
-        <div>
-          <div className="name">SANKET</div>
+        <Link to="/" className="sidebar-brand-link" title="Home">
+          <Brand inverse />
           <div className="tag">Landslide Early Warning</div>
-        </div>
+        </Link>
         <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">×</button>
       </div>
 
       <ul className="nav-list">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.id] || IconInfo;
-          const isAllowed = allowed(item.id);
+          if (!canAccess(item.id, role)) {
+            return (
+              <li key={item.id}>
+                <span className="nav-item disabled" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Not available for your role" aria-disabled="true">
+                  <IconLock />{item.label}
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={item.id}>
-              <button
-                className={`nav-item ${view === item.id ? 'active' : ''}`}
-                style={!isAllowed ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                disabled={!isAllowed}
-                title={!isAllowed ? `Requires District Officer access` : undefined}
-                onClick={() => isAllowed && navigate(item.id)}
-              >
-                {isAllowed ? <Icon /> : <IconLock />}
-                {item.label}
-              </button>
+              <NavLink to={pathFor(item.id, { districtId })} className={navClass(item.id)} end>
+                <Icon />{item.label}
+              </NavLink>
             </li>
           );
         })}
@@ -67,23 +58,18 @@ export default function Sidebar({ view, onNavigate, role, onFieldView, open, onC
 
       <div className="divider" style={{ margin: '14px 20px' }} />
 
-      <div style={{ padding: '0 10px' }}>
-        <button className={`nav-item ${view === 'field-officer' ? 'active' : ''}`} onClick={() => { onFieldView(); onClose?.(); }}>
-          <IconUser />
-          Field Officer View
-        </button>
+      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <NavLink to={pathFor('field-officer')} className={navClass('field-officer')} end>
+          <IconUser />Field Officer View
+        </NavLink>
+        {role === 'admin' && (
+          <NavLink to={pathFor('admin')} className={navClass('admin')} end>
+            <IconLock />Admin
+          </NavLink>
+        )}
       </div>
 
-      <div className="sidebar-footer">
-        Role: <b style={{ color: 'var(--text-muted)' }}>{ROLES[role]?.label}</b>
-        <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.5 }}>
-          Can: {ROLES[role]?.can.join(' · ')}
-        </div>
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--hazard-normal)', fontWeight: 600 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--hazard-normal)', display: 'inline-block' }} />
-          SANKET v1.0.0 · Live Telemetry
-        </div>
-      </div>
+      <div className="sidebar-footer">SANKET v2.0</div>
     </nav>
   );
 }

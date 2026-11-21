@@ -1,221 +1,78 @@
-import React, { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
-import Sidebar from './components/Sidebar.jsx';
-import TopBar from './components/Topbar.jsx';
-import LiveTicker from './components/LiveTicker.jsx';
-import DemoOverlay, { DEMO_STEPS } from './components/DemoOverlay.jsx';
-const Dashboard = lazy(() => import('./views/Dashboard.jsx'));
-const GisRiskMap = lazy(() => import('./views/GisRiskMap.jsx'));
-const RiskMonitoring = lazy(() => import('./views/RiskMonitoring.jsx'));
-const Analytics = lazy(() => import('./views/Analytics.jsx'));
-const Infrastructure = lazy(() => import('./views/Infrastructure.jsx'));
-const HistoricalBacktesting = lazy(() => import('./views/HistoricalBacktesting.jsx'));
-const Alerts = lazy(() => import('./views/Alerts.jsx'));
-const Reports = lazy(() => import('./views/Reports.jsx'));
-const FieldOfficerView = lazy(() => import('./views/FieldOfficerView.jsx'));
-const Settings = lazy(() => import('./views/Settings.jsx'));
-const Help = lazy(() => import('./views/Help.jsx'));
-const Tactical3DGlobe = lazy(() => import('./views/Tactical3DGlobe.jsx'));
-import ErrorBoundary from './components/ErrorBoundary.jsx';
-import { getState, getDistrict, getZone, ALERT_LANGUAGES } from './data/mockData.js';
-import { resolveRoute, canAccess, routeTitle, DEFAULT_ROUTE } from './routes.js';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { createBrowserRouter, Navigate, Outlet, ScrollRestoration, useLocation } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
+import { useAuth } from './auth/AuthContext.jsx';
+import AppShell from './AppShell.jsx';
+import { ALIASES, APP_ROUTES, landingPath, pathFor, resolveRoute, routeForPath } from './routes.js';
+import {
+  AuthCallback, NotFound, PublicOnly, Redirect, RequireActive, RequireSession, RouteError, useGo,
+} from './routing.jsx';
 
-// canonical route id -> view component (ids live in routes.js)
-const VIEWS = {
-  overview: Dashboard,
-  monitor: RiskMonitoring,
-  'risk-map': GisRiskMap,
-  'tactical-3d': Tactical3DGlobe,
-  analytics: Analytics,
-  history: HistoricalBacktesting,
-  infra: Infrastructure,
-  alerts: Alerts,
-  reports: Reports,
-  'field-officer': FieldOfficerView,
-  settings: Settings,
-  help: Help,
-};
+// URL map (clean paths, browser history):
+//   /                                  home page (public)
+//   /login  /signup                    sign-in pages (signed-in users are sent on)
+//   /pending                           waiting for approval (needs a session)
+//   /auth/callback                     Google sign-in returns here
+//   /overview  /monitor?district=...   the app (needs an approved account; role checked per page)
+//   /dashboard, /#monitor, ...         old links redirect to their new path
+//   anything else                      404 page
 
-const readHashRoute = () => resolveRoute(window.location.hash);
+const Home = lazy(() => import('./views/home/Home.jsx'));
+const AuthPages = lazy(() => import('./views/auth/AuthPages.jsx'));
+const Blank = () => <div style={{ minHeight: '100vh', background: '#f7f4ef' }} />;
+
+function HomePage() {
+  const auth = useAuth();
+  const go = useGo();
+  const signedIn = !!(auth.ready && auth.session && auth.profile?.status === 'active');
+  // "Open dashboard": a signed-in user's own start page; otherwise the overview (sign-in comes first)
+  const onDashboard = () => go(signedIn ? landingPath(auth.profile) : 'overview');
+  return (
+    <Suspense fallback={<Blank />}>
+      <Home goTo={(id, p) => go(id, { districtId: p?.districtId })} onDashboard={onDashboard} signedIn={signedIn} />
+    </Suspense>
+  );
+}
+
+const AuthScreen = ({ mode }) => <Suspense fallback={<Blank />}><AuthPages mode={mode} /></Suspense>;
+
+function Root() {
+  const loc = useLocation();
+  const route = routeForPath(loc.pathname);
+  useEffect(() => {
+    document.title = !route ? 'Page not found · SANKET'
+      : route.id === 'home' ? 'SANKET — Landslide Early Warning' : `${route.title} · SANKET`;
+  }, [route]);
+
+  // Old hash links (/#monitor) from before clean URLs
+  const legacy = loc.pathname === '/' && loc.hash && resolveRoute(loc.hash);
+  if (legacy) return <Navigate to={pathFor(legacy)} replace />;
+  // Google came back to some other page (e.g. Supabase fell back to the site root): finish signing in
+  if (/[?&](code|error)=/.test(loc.search) && loc.pathname !== '/auth/callback') {
+    return <Navigate to={`/auth/callback${loc.search}`} replace />;
+  }
+  return <><Outlet /><ScrollRestoration /></>;
+}
+
+const router = createBrowserRouter([{
+  element: <Root />,
+  errorElement: <RouteError />,
+  children: [
+    { path: '/', element: <HomePage /> },
+    { element: <PublicOnly />, children: [
+      { path: '/login', element: <AuthScreen mode="login" /> },
+      { path: '/signup', element: <AuthScreen mode="signup" /> },
+    ] },
+    { path: '/pending', element: <RequireSession><AuthScreen mode="pending" /></RequireSession> },
+    { path: '/auth/callback', element: <AuthCallback /> },
+    { element: <RequireActive />, children: [
+      { element: <AppShell />, children: APP_ROUTES.map((r) => ({ path: r.path, handle: { id: r.id } })) },
+    ] },
+    ...Object.entries(ALIASES).map(([alias, id]) => ({ path: `/${alias}`, element: <Redirect to={pathFor(id)} /> })),
+    { path: '*', element: <NotFound /> },
+  ],
+}]);
 
 export default function App() {
-  const [view, setView] = useState(() => readHashRoute() || 'overview');
-  const [role, setRole] = useState('district_officer');
-  const [language, setLanguage] = useState('en');
-  const [selection, setSelection] = useState({ stateId: 'UK', districtId: 'rudraprayag', zoneId: 'rudraprayag-a' });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('sanket-theme') || 'light'; } catch { return 'light'; }
-  });
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem('sanket-theme', theme); } catch { /* ignore */ }
-  }, [theme]);
-
-  // Hash routing. ALL navigation (sidebar, goTo, demo, role switch) goes through
-  // navigate(), so the URL hash is always the source of truth: bookmarks and the
-  // browser back/forward buttons work, and unknown/legacy ids are normalised.
-  const navigate = useCallback((id, { replace = false } = {}) => {
-    const target = resolveRoute(id) || 'overview';
-    setView(target);
-    try {
-      if (replace) window.history.replaceState(null, '', `#${target}`);
-      else if (window.location.hash !== `#${target}`) window.location.hash = target;
-    } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => {
-    function onHashChange() {
-      const route = readHashRoute();
-      if (route) setView(route);
-      else navigate('overview', { replace: true }); // unknown hash -> overview
-    }
-    // Normalise the initial URL (empty, legacy alias or unknown hash).
-    const initial = readHashRoute();
-    if (initial !== window.location.hash.replace(/^#\/?/, '')) navigate(initial || 'overview', { replace: true });
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [navigate]);
-
-  // Role guard: a role can never sit on a route it has no access to (e.g. a
-  // field officer opening #analytics by hand).
-  useEffect(() => {
-    if (!canAccess(view, role)) navigate(DEFAULT_ROUTE[role], { replace: true });
-  }, [view, role, navigate]);
-
-  // Guided demo walkthrough
-  const [demoActive, setDemoActive] = useState(false);
-  const [demoStep, setDemoStep] = useState(0);
-  const [demoPaused, setDemoPaused] = useState(false);
-
-  function applyDemoStep(i) {
-    const step = DEMO_STEPS[i];
-    if (!step) return;
-    setSelection((s) => ({ ...s, ...step.selection }));
-    navigate(step.view, { replace: true });
-  }
-  function startDemo() {
-    setRole('district_officer');
-    setDemoStep(0);
-    applyDemoStep(0);
-    setDemoPaused(false);
-    setDemoActive(true);
-  }
-  function exitDemo() {
-    setDemoActive(false);
-  }
-  function goToDemoStep(i) {
-    const clamped = Math.max(0, Math.min(DEMO_STEPS.length - 1, i));
-    applyDemoStep(clamped);
-    setDemoStep(clamped);
-  }
-  function nextDemoStep() {
-    if (demoStep >= DEMO_STEPS.length - 1) { setDemoActive(false); return; }
-    goToDemoStep(demoStep + 1);
-  }
-
-  useEffect(() => {
-    if (!demoActive || demoPaused) return undefined;
-    const step = DEMO_STEPS[demoStep];
-    if (!step) return undefined;
-    const t = setTimeout(nextDemoStep, step.duration);
-    return () => clearTimeout(t);
-  }, [demoActive, demoPaused, demoStep]);
-
-  const selectedState = useMemo(() => getState(selection.stateId), [selection.stateId]);
-  const selectedDistrict = useMemo(() => (selection.districtId ? getDistrict(selection.districtId) : null), [selection.districtId]);
-  const selectedZone = useMemo(() => (selection.zoneId ? getZone(selection.zoneId) : null), [selection.zoneId]);
-
-  function goTo(nextView, partialSelection) {
-    if (partialSelection) setSelection((s) => ({ ...s, ...partialSelection }));
-    navigate(nextView);
-  }
-
-  function selectState(stateId) {
-    setSelection((s) => ({ ...s, stateId, districtId: null, zoneId: null }));
-  }
-  function selectDistrict(districtId) {
-    const d = getDistrict(districtId);
-    setSelection((s) => ({ ...s, districtId, stateId: d ? d.state : s.stateId, zoneId: null }));
-  }
-  function selectZone(zoneId) {
-    const z = getZone(zoneId);
-    setSelection((s) => ({ ...s, zoneId, districtId: z ? z.district : s.districtId, stateId: z ? z.state : s.stateId }));
-  }
-
-  const crumbs = useMemo(() => {
-    const c = ['Pan-India'];
-    if (selectedState) c.push(selectedState.name);
-    if (selectedDistrict) c.push(selectedDistrict.name);
-    if (selectedZone && view !== 'overview') c.push(selectedZone.name);
-    return c;
-  }, [selectedState, selectedDistrict, selectedZone, view]);
-
-  const ActiveView = VIEWS[view];
-  const langLabel = ALERT_LANGUAGES.find((l) => l.code === language)?.label || 'English';
-
-  const commonProps = {
-    role, language: langLabel,
-    selection, selectedState, selectedDistrict, selectedZone,
-    selectState, selectDistrict, selectZone, goTo,
-    onStartDemo: startDemo,
-  };
-
-  return (
-    <div className="app-shell">
-      <Sidebar
-        view={view}
-        onNavigate={navigate}
-        role={role}
-        onFieldView={() => { setRole('field_officer'); navigate('field-officer'); }}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <div className={`sidebar-backdrop ${sidebarOpen ? 'visible' : ''}`} onClick={() => setSidebarOpen(false)} />
-      <div className="main-col">
-        <TopBar
-          title={routeTitle(view)}
-          crumbs={view === 'field-officer' ? null : crumbs}
-          role={role}
-          onRoleChange={(r) => {
-            setRole(r);
-            if (r === 'field_officer') navigate('field-officer');
-            else if (view === 'field-officer') navigate('overview');
-          }}
-          language={language}
-          onLanguageChange={setLanguage}
-          onSearchSelectDistrict={(id) => { selectDistrict(id); goTo('monitor', { districtId: id }); }}
-          onMenuClick={() => setSidebarOpen(true)}
-          theme={theme}
-          onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-        />
-        <div className={`content scrollbar-thin ${demoActive ? 'content--demo-active' : ''}`}>
-          <ErrorBoundary key={view}>
-            {ActiveView && (
-              <Suspense fallback={<div style={{ padding: 24, color: 'var(--text-dim)', fontSize: 13 }}>Loading view…</div>}>
-              <ActiveView
-                {...commonProps}
-                {...(view === 'settings' ? { theme, onToggleTheme: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) } : {})}
-              />
-              </Suspense>
-            )}
-          </ErrorBoundary>
-        </div>
-      </div>
-      <LiveTicker
-        enabled={role === 'district_officer'}
-        onOpenDistrict={(id) => { selectDistrict(id); goTo('monitor', { districtId: id }); }}
-      />
-      {demoActive && (
-        <DemoOverlay
-          stepIndex={demoStep}
-          paused={demoPaused}
-          onNext={nextDemoStep}
-          onPrev={() => goToDemoStep(demoStep - 1)}
-          onPauseToggle={() => setDemoPaused((p) => !p)}
-          onExit={exitDemo}
-        />
-      )}
-    </div>
-  );
+  return <RouterProvider router={router} />;
 }

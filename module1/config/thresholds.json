@@ -1,0 +1,115 @@
+{
+  "_about": "Published empirical rainfall thresholds for landslide initiation, used by SANKET until a model trained on real event data exists. ratio = observed rainfall / threshold rainfall for the same duration; the largest ratio over all evaluated durations governs.",
+  "levels": {
+    "watch": 1.0,
+    "warning": 2.0,
+    "danger": 4.0,
+    "hysteresis": 0.1,
+    "note": "ratio >= 1.0 means rainfall has reached conditions under which landslides were recorded in the source study (these are lower-bound thresholds). The 2x (warning) and 4x (danger) multiples are SANKET operational settings, NOT published values: calibrate them with the History page."
+  },
+  "durations_hours": [
+    1,
+    3,
+    6,
+    12,
+    24,
+    48,
+    72,
+    120,
+    168,
+    240
+  ],
+  "regions": {
+    "uttarakhand_himalaya": {
+      "label": "Garhwal-Kumaon Himalaya (Uttarakhand)",
+      "type": "ID",
+      "alpha": 1.82,
+      "beta": -0.23,
+      "d_min_h": 24,
+      "d_max_h": 240,
+      "states": [
+        "Uttarakhand"
+      ],
+      "basis": "Lower boundary of 81 landslide-triggering rainfall events, Chamoli-Joshimath region, daily rain-gauge data (so only durations >= 24 h are evaluated).",
+      "citation": "Kanungo, D.P. & Sharma, S. (2014). Rainfall thresholds for prediction of shallow landslides around Chamoli-Joshimath region, Garhwal Himalayas, India. Landslides 11(4), 629-638.",
+      "doi": "10.1007/s10346-013-0438-9",
+      "status": "peer-reviewed"
+    },
+    "kerala_western_ghats": {
+      "label": "Western Ghats (Kerala)",
+      "type": "ID",
+      "alpha": 0.9,
+      "beta": -0.16,
+      "d_min_h": 24,
+      "d_max_h": 240,
+      "states": [
+        "Kerala"
+      ],
+      "basis": "Idukki district rainfall and landslide records 2010-2018, daily data (durations >= 24 h).",
+      "citation": "Abraham, M.T., Pothuraju, D. & Satyam, N. (2019). Rainfall Thresholds for Prediction of Landslides in Idukki, India: An Empirical Approach. Water 11(10), 2113.",
+      "doi": "10.3390/w11102113",
+      "status": "peer-reviewed"
+    },
+    "darjeeling_sikkim": {
+      "label": "Darjeeling-Sikkim Himalaya",
+      "type": "ID",
+      "alpha": 3.52,
+      "beta": -0.41,
+      "d_min_h": 24,
+      "d_max_h": 240,
+      "states": [
+        "Sikkim",
+        "West Bengal"
+      ],
+      "basis": "Kalimpong, catalogue of 61 landslide events, frequentist approach.",
+      "citation": "Dikshit, A. & Satyam, N. (2018). Estimation of rainfall thresholds for landslide occurrences in Kalimpong, India. Innovative Infrastructure Solutions.",
+      "doi": "10.1007/s41062-018-0132-9",
+      "status": "peer-reviewed"
+    },
+    "northeast_himalaya": {
+      "label": "North-Eastern Himalaya",
+      "type": "ED",
+      "a": -11.1,
+      "b": 0.62,
+      "d_min_h": 25,
+      "d_max_h": 1440,
+      "states": [
+        "Arunachal Pradesh",
+        "Assam",
+        "Manipur",
+        "Meghalaya",
+        "Mizoram",
+        "Nagaland",
+        "Tripura"
+      ],
+      "basis": "490 rain-driven landslides 2006-2019; cumulative event rainfall E (mm) vs duration D (h), valid 24 < D < 1440 h.",
+      "citation": "Monga, D. & Ganguli, P. (2024). Northeast Indian Himalaya rainfall thresholds. Natural Hazards and Earth System Sciences Discussions, preprint nhess-2024-152.",
+      "doi": "10.5194/nhess-2024-152",
+      "status": "preprint (in open discussion, not final peer-reviewed)"
+    },
+    "global_default": {
+      "label": "Global threshold (Guzzetti et al. 2008) - no regional threshold for this state",
+      "type": "ID",
+      "alpha": 2.2,
+      "beta": -0.44,
+      "d_min_h": 0.1,
+      "d_max_h": 1000,
+      "states": [
+        "Himachal Pradesh",
+        "Jammu & Kashmir",
+        "Maharashtra",
+        "Tamil Nadu",
+        "Karnataka",
+        "Goa"
+      ],
+      "basis": "Global lower-bound threshold from 2,626 rainfall events that triggered shallow landslides and debris flows. Coefficients as widely cited; replace with a regional threshold for these states when one is verified.",
+      "citation": "Guzzetti, F., Peruccacci, S., Rossi, M. & Stark, C.P. (2008). The rainfall intensity-duration control of shallow landslides and debris flows: an update. Landslides 5(1), 3-17.",
+      "doi": "10.1007/s10346-007-0112-1",
+      "status": "peer-reviewed"
+    }
+  },
+  "terrain_gate": {
+    "min_steepest_slope_1km_deg": 12.0,
+    "note": "The published thresholds are only applied where a hillside exists: the steepest 150 m-mean slope within 1 km (Copernicus GLO-30) must be >= 12 deg. Basis: at 178 precisely mapped landslide sites (Kerala 2018, Himachal 2023) that value was >= 17.7 deg at 99% of sites and 8.6 deg at the lowest; flat plains (e.g. Sehore, 10.4 deg) fall below it."
+  }
+}

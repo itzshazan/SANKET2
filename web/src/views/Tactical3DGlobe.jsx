@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { TACTICAL_SHADERS } from './tactical/shaders/index.js';
 import { module1Api } from '../services/module1Api.js';
-import { PAN_INDIA_SPATIAL_NODES } from '../components/LiveGisLeafletMap.jsx';
 import './tactical/Tactical3DGlobe.css';
 
 // Preset Tactical Mountain Vantage Points (Oblique camera vectors revealing 3D relief)
 const TACTICAL_PRESETS = [
   {
     id: 'pan-india',
-    name: 'Pan-India Overview',
-    region: 'Orbital Reconnaissance',
+    name: 'All India',
+    region: 'Whole country',
     lat: 22.5,
     lon: 82.0,
     alt: 3800000,
@@ -19,7 +18,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'wayanad',
     name: 'Wayanad (Chooralmala)',
-    region: 'Western Ghats Escarpment',
+    region: 'Western Ghats, Kerala',
     lat: 11.52,
     lon: 76.15,
     alt: 3600,
@@ -30,7 +29,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'rudraprayag',
     name: 'Kedarnath (Mandakini)',
-    region: 'NW Himalayas Valley',
+    region: 'Uttarakhand',
     lat: 30.73,
     lon: 79.06,
     alt: 5400,
@@ -41,7 +40,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'chamoli',
     name: 'Joshimath (Alaknanda)',
-    region: 'Chamoli Fault Line',
+    region: 'Uttarakhand',
     lat: 30.55,
     lon: 79.56,
     alt: 4400,
@@ -52,7 +51,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'noney',
     name: 'Tupul (Noney)',
-    region: 'Manipur Rail Corridor',
+    region: 'Manipur',
     lat: 24.81,
     lon: 93.65,
     alt: 2800,
@@ -63,7 +62,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'shimla',
     name: 'Shimla Ridge',
-    region: 'Himachal Escarpment',
+    region: 'Himachal Pradesh',
     lat: 31.10,
     lon: 77.17,
     alt: 3900,
@@ -74,7 +73,7 @@ const TACTICAL_PRESETS = [
   {
     id: 'gangtok',
     name: 'Gangtok / Teesta',
-    region: 'Sikkim High Gorge',
+    region: 'Sikkim',
     lat: 27.33,
     lon: 88.61,
     alt: 3400,
@@ -104,62 +103,27 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
   });
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [liveDistricts, setLiveDistricts] = useState([]);
-  const [utcTime, setUtcTime] = useState('');
 
-  // Clock ticker for tactical HUD Zulu time
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setUtcTime(now.toISOString().replace('T', ' ').substring(0, 19) + ' ZULU');
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch live district telemetry from Module 1 API, fallback to spatial nodes
+  // Live district evaluation from the backend. No static fallback: if the API is down the globe
+  // shows no beacons rather than invented ones.
+  const [liveError, setLiveError] = useState(null);
   useEffect(() => {
     let mounted = true;
-    async function fetchLiveTelemetry() {
-      try {
-        const live = await module1Api.getDistrictsLive();
-        if (mounted && live && live.districts) {
-          let list = [];
-          if (Array.isArray(live.districts)) {
-            list = live.districts;
-          } else if (typeof live.districts === 'object') {
-            list = Object.entries(live.districts).map(([id, item]) => ({
-              id,
-              ...item,
-              hazard: item.risk_level || 'normal',
-              probability: item.risk_probability || 0.5,
-            }));
-          }
-          if (list.length > 0) {
-            setLiveDistricts(list);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Live telemetry fetch fallback to PAN_INDIA_SPATIAL_NODES:', err);
-      }
-      if (mounted) {
-        const staticList = PAN_INDIA_SPATIAL_NODES.map((d) => ({
-          id: d.id,
-          name: d.name,
-          state: d.state,
-          hazard: d.hazard || 'normal',
-          probability: d.prob || 0.5,
-          rainfall_24h: 35.0,
-          soil_moisture: 40.0,
-          slope: 28.0,
-          lat: d.lat,
-          lon: d.lon,
-        }));
-        setLiveDistricts(staticList);
-      }
-    }
-    fetchLiveTelemetry();
+    module1Api.getDistrictsLive().then((live) => {
+      if (!mounted) return;
+      if (!live?.districts) { setLiveError('Live district data unavailable'); return; }
+      setLiveDistricts(Object.values(live.districts).map((d) => {
+        const slopes = (d.hotspots || []).map((h) => h.slope_deg).filter((v) => typeof v === 'number');
+        return {
+          id: d.id, name: d.name, state: d.state, lat: d.lat, lon: d.lon,
+          hazard: d.level, ratio: d.ratio,
+          rainfall_24h: d.weather?.rain_mm?.['24'] ?? null,
+          soil_moisture: d.weather?.soil_moisture_7_28cm ?? null,
+          slope: slopes.length ? Math.max(...slopes) : null,
+          weatherStatus: d.weather_status,
+        };
+      }));
+    });
     return () => { mounted = false; };
   }, []);
 
@@ -179,7 +143,7 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
       // Imagery comes from Esri World Imagery (OpenStreetMap as fallback) on the
       // default ellipsoid terrain.
 
-      if (!containerRef.current) return;
+      if (isCancelled || !containerRef.current) return;
 
       try {
         // Build Cesium Viewer with God's Eye View minimal chrome
@@ -225,16 +189,19 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
             'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
             { enablePickFeatures: false }
           );
-          setMapSource('Esri World Satellite Imagery (free, keyless)');
+          setMapSource('Esri satellite');
         } catch (arcErr) {
           console.warn('Esri imagery unavailable, falling back to OpenStreetMap:', arcErr);
           imageryProvider = new Cesium.OpenStreetMapImageryProvider({
             url: 'https://tile.openstreetmap.org/',
           });
-          setMapSource('OpenStreetMap Global Baseline');
+          setMapSource('OpenStreetMap');
         }
 
-        if (imageryProvider && !viewer.isDestroyed()) {
+        // The page may have been closed (or re-mounted) while imagery was loading: this viewer
+        // is then already destroyed, so stop here instead of configuring a dead viewer.
+        if (isCancelled || viewer.isDestroyed()) return;
+        if (imageryProvider) {
           viewer.scene.imageryLayers.addImageryProvider(imageryProvider);
         }
 
@@ -347,10 +314,10 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
       if (!d || !d.lat || !d.lon) return;
 
       const dName = String(d.name || d.id || 'LOCATION');
-      const dHazard = String(d.hazard || 'normal').toLowerCase();
-      const dProb = Math.round(((d.probability ?? d.prob ?? 0.1) || 0.1) * 100);
+      const dHazard = String(d.hazard || 'unknown').toLowerCase();
+      const dTag = typeof d.ratio === 'number' ? `${d.ratio.toFixed(1)}×` : 'no data';
 
-      let color = Cesium.Color.fromCssColorString('#10b981'); // normal
+      let color = Cesium.Color.fromCssColorString(dHazard === 'unknown' ? '#6b7280' : '#10b981'); // normal / no data
       let cylinderH = 1600;
       let radius = 30;
 
@@ -397,7 +364,7 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
-          text: `${dName.toUpperCase()} [${dProb}%]`,
+          text: `${dName} ${dTag}`,
           font: '10px "IBM Plex Mono", monospace',
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           fillColor: Cesium.Color.WHITE,
@@ -515,15 +482,6 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
 
       {/* Top Intelligence HUD Bar */}
       <div className="tactical-hud-topbar">
-        <div className="hud-brand-segment">
-          <div className="hud-rec-indicator">
-            <span className="hud-rec-dot" />
-            <span>REC</span>
-          </div>
-          <div className="hud-title-tag">
-            GOD'S EYE VIEW <span>// SANKET RECON</span>
-          </div>
-        </div>
 
         <div className="hud-telemetry-readouts">
           <div className="telemetry-chip highlight">
@@ -533,29 +491,16 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
             <span>ALT:</span> <strong>{telemetry.alt}</strong>
           </div>
           <div className="telemetry-chip">
-            <span>HDG:</span> <strong>{telemetry.heading}</strong>
-          </div>
-          <div className="telemetry-chip">
-            <span>PITCH:</span> <strong>{telemetry.pitch}</strong>
-          </div>
-          <div className="telemetry-chip">
-            <span>TIME:</span> <strong>{utcTime}</strong>
-          </div>
-          <div className="telemetry-chip">
-            <span>SOURCE:</span> <strong>{mapSource}</strong>
+            <span>IMAGERY:</span> <strong>{mapSource}</strong>
           </div>
         </div>
 
-        <div className="hud-active-style-badge">
-          {activeSensor === 'normal' ? 'OPTICAL 3D' : activeSensor.toUpperCase()}
-        </div>
       </div>
 
       {/* Left Mountain Presets Deck */}
       <div className="tactical-vantage-deck">
         <div className="deck-header">
-          <span>Target Mountain Belts</span>
-          <small style={{ color: '#94a3b8', fontSize: '9px', fontFamily: 'monospace' }}>3D RELIEF</small>
+          <span>Go to</span>
         </div>
         <div className="deck-list">
           {TACTICAL_PRESETS.map((p) => (
@@ -581,43 +526,43 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
             className={`sensor-chip-btn ${activeSensor === 'normal' ? 'active' : ''}`}
             onClick={() => applySensorMode('normal')}
           >
-            🌐 Optical 3D
+            🌐 Normal
           </button>
           <button
             className={`sensor-chip-btn flir ${activeSensor === 'thermal' ? 'active' : ''}`}
             onClick={() => applySensorMode('thermal')}
           >
-            🔥 FLIR Thermal
+            🔥 Thermal
           </button>
           <button
             className={`sensor-chip-btn nvg ${activeSensor === 'surveillance' ? 'active' : ''}`}
             onClick={() => applySensorMode('surveillance')}
           >
-            🟢 NVG Phosphor
+            🟢 Night vision
           </button>
           <button
             className={`sensor-chip-btn crt ${activeSensor === 'retro' ? 'active' : ''}`}
             onClick={() => applySensorMode('retro')}
           >
-            📺 CRT Monitor
+            📺 Retro
           </button>
           <button
             className={`sensor-chip-btn ${activeSensor === 'noir' ? 'active' : ''}`}
             onClick={() => applySensorMode('noir')}
           >
-            🎞️ Noir Recon
+            🎞️ Noir
           </button>
           <button
             className={`sensor-chip-btn ${activeSensor === 'snow' ? 'active' : ''}`}
             onClick={() => applySensorMode('snow')}
           >
-            ❄️ Blizzard
+            ❄️ Snow
           </button>
           <button
             className={`sensor-chip-btn ${activeSensor === 'anime' ? 'active' : ''}`}
             onClick={() => applySensorMode('anime')}
           >
-            🎨 Cel-Shaded
+            🎨 Cartoon
           </button>
         </div>
 
@@ -625,25 +570,25 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
         {activeSensor === 'thermal' && (
           <div className="submode-pill-row">
             <span style={{ fontSize: '9px', fontFamily: 'monospace', color: '#94a3b8', marginRight: '4px' }}>
-              FLIR RAMP:
+              Palette:
             </span>
             <button
               className={`submode-pill ${thermalMode === 'ironbow' ? 'active' : ''}`}
               onClick={() => setThermalPalette('ironbow')}
             >
-              Predator Ironbow
+              Ironbow
             </button>
             <button
               className={`submode-pill ${thermalMode === 'whot' ? 'active' : ''}`}
               onClick={() => setThermalPalette('whot')}
             >
-              White-Hot (WHOT)
+              White hot
             </button>
             <button
               className={`submode-pill ${thermalMode === 'bhot' ? 'active' : ''}`}
               onClick={() => setThermalPalette('bhot')}
             >
-              Black-Hot (BHOT)
+              Black hot
             </button>
           </div>
         )}
@@ -653,7 +598,7 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
       {selectedDistrict && (
         <div className="tactical-dossier-rail">
           <div className="dossier-header">
-            <span>Focal Target Dossier</span>
+            <span>District</span>
             <button className="dossier-close-btn" onClick={() => setSelectedDistrict(null)}>
               ✕
             </button>
@@ -662,27 +607,27 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
           <div className="dossier-title-box">
             <div className="name">{selectedDistrict.name}</div>
             <div className="state">
-              STATE: {String(selectedDistrict.state || '').toUpperCase()} · SENSOR TELEMETRY
+              {selectedDistrict.state}
             </div>
           </div>
 
           <div className="dossier-metric-line">
-            <span className="label">Landslide Hazard Tier</span>
-            <span className={`risk-level-badge ${selectedDistrict.hazard || 'normal'}`}>
-              {String(selectedDistrict.hazard || 'NORMAL').toUpperCase()}
+            <span className="label">Level</span>
+            <span className={`risk-level-badge ${selectedDistrict.hazard || 'unknown'}`}>
+              {String(selectedDistrict.hazard || 'unknown').toUpperCase()}
             </span>
           </div>
 
           <div className="dossier-metric-line">
-            <span className="label">XGBoost ML Probability</span>
-            <span className="val">{Math.round(((selectedDistrict.probability ?? selectedDistrict.prob ?? 0.1) || 0.1) * 100)}%</span>
+            <span className="label">Rain ÷ threshold</span>
+            <span className="val">{typeof selectedDistrict.ratio === 'number' ? `${selectedDistrict.ratio.toFixed(2)}x` : 'no data'}</span>
           </div>
 
           <div className="prob-meter-bar">
             <div
               className="prob-meter-fill"
               style={{
-                width: `${Math.round(((selectedDistrict.probability ?? selectedDistrict.prob ?? 0.1) || 0.1) * 100)}%`,
+                width: `${typeof selectedDistrict.ratio === 'number' ? Math.min(100, (selectedDistrict.ratio / 4) * 100) : 0}%`,
                 background:
                   selectedDistrict.hazard === 'danger'
                     ? '#ef4444'
@@ -696,18 +641,18 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
           </div>
 
           <div className="dossier-metric-line">
-            <span className="label">24h Rainfall (Open-Meteo)</span>
-            <span className="val">{selectedDistrict.rainfall_24h || 35.0} mm</span>
+            <span className="label">Rain, last 24 h</span>
+            <span className="val">{selectedDistrict.rainfall_24h ?? '—'} mm</span>
           </div>
 
           <div className="dossier-metric-line">
-            <span className="label">Soil Moisture (Copernicus)</span>
-            <span className="val">{selectedDistrict.soil_moisture || 40.0}%</span>
+            <span className="label">Soil moisture</span>
+            <span className="val">{selectedDistrict.soil_moisture != null ? `${selectedDistrict.soil_moisture} m³/m³` : '—'}</span>
           </div>
 
           <div className="dossier-metric-line">
-            <span className="label">Mean Slope Incline</span>
-            <span className="val">{selectedDistrict.slope || 28.0}°</span>
+            <span className="label">Steepest slope</span>
+            <span className="val">{selectedDistrict.slope != null ? `${selectedDistrict.slope}°` : '—'}</span>
           </div>
 
           <div className="dossier-metric-line">
@@ -720,13 +665,13 @@ export default function Tactical3DGlobe({ role, goTo, selection, selectDistrict 
               className="dossier-action-btn"
               onClick={() => goTo('monitor', { districtId: selectedDistrict.id })}
             >
-              Live Telemetry →
+              Live Monitor →
             </button>
             <button
               className="dossier-action-btn secondary"
               onClick={() => goTo('infra', { districtId: selectedDistrict.id })}
             >
-              OSM Routes
+              Infrastructure
             </button>
           </div>
         </div>

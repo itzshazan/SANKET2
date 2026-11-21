@@ -1,360 +1,183 @@
-"""FastAPI Route Handlers for Module 1."""
+"""FastAPI routes for Module 1 (live monitoring on real data)."""
 
+import os
 from datetime import datetime, timezone
-from pathlib import Path
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Any, Optional, List
+from typing import Optional
 
-_cache_lock = threading.Lock()
-from fastapi import APIRouter, HTTPException, Query
-from .schemas import (
-    PredictionRequest,
-    PredictionResponse,
-    ExplanationResponse,
-    FactorAttribution,
-    BatchPredictionRequest,
-    BatchPredictionResponse,
-    HealthResponse,
-)
-from ..inference.predictor import LandslidePredictor
-from ..explainability.shap import GroupShapleyExplainer
-from ..evaluation.backtesting import HistoricalEventBacktester
-from ..ingestion.realtime_api import realtime_service, is_offline_mode
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from starlette.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field
+
+from ..inference import threshold_model as tm
 from ..ingestion.osm import osm_service
+from ..ml import predict as ml
+from ..monitoring import analytics, hotspots, service
+from ..sources import sentinel2
+from .auth import current_user
+from module3 import service as road_blockage
 
-router = APIRouter(prefix="/api/v1/module1", tags=["Module 1: Landslide Risk Prediction"])
-
-MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
-MODEL_PATH = MODELS_DIR / "module1_model.pkl"
-
-# Initialize predictor and explainer
-predictor = LandslidePredictor(model_path=MODEL_PATH)
-explainer = GroupShapleyExplainer(model=predictor.model)
-
-backtester = HistoricalEventBacktester()
-
-# Pan-India key monitoring hubs for nationwide aggregation
-KEY_MONITORING_HUBS = [
-    {"id": "wayanad", "name": "Wayanad", "state": "Kerala", "lat": 11.6854, "lon": 76.1320},
-    {"id": "rudraprayag", "name": "Rudraprayag", "state": "Uttarakhand", "lat": 30.2844, "lon": 78.9811},
-    {"id": "noney", "name": "Noney", "state": "Manipur", "lat": 24.7831, "lon": 93.6322},
-    {"id": "mandi", "name": "Mandi", "state": "Himachal Pradesh", "lat": 31.7087, "lon": 76.9319},
-    {"id": "chamoli", "name": "Chamoli", "state": "Uttarakhand", "lat": 30.5564, "lon": 79.5670},
-    {"id": "raigad", "name": "Raigad", "state": "Maharashtra", "lat": 18.2346, "lon": 73.4442},
-    {"id": "ramban", "name": "Ramban", "state": "Jammu & Kashmir", "lat": 33.2422, "lon": 75.2415},
-    {"id": "nilgiris", "name": "Nilgiris", "state": "Tamil Nadu", "lat": 11.4102, "lon": 76.6950},
-]
-
-# Full set of all monitored districts (superset of KEY hubs + additional districts from frontend)
-ALL_MONITORED_DISTRICTS = KEY_MONITORING_HUBS + [
-    {"id": "idukki", "name": "Idukki", "state": "Kerala", "lat": 9.8494, "lon": 76.9723},
-    {"id": "pune", "name": "Pune", "state": "Maharashtra", "lat": 19.1583, "lon": 73.6872},
-    {"id": "tehri", "name": "Tehri Garhwal", "state": "Uttarakhand", "lat": 30.3800, "lon": 78.4800},
-    {"id": "shimla", "name": "Shimla", "state": "Himachal Pradesh", "lat": 31.1048, "lon": 77.1734},
-    {"id": "kullu", "name": "Kullu", "state": "Himachal Pradesh", "lat": 31.9579, "lon": 77.1095},
-    {"id": "tamenglong", "name": "Tamenglong", "state": "Manipur", "lat": 24.9850, "lon": 93.4920},
-    {"id": "east-sikkim", "name": "East Sikkim", "state": "Sikkim", "lat": 27.3389, "lon": 88.6065},
-    {"id": "aizawl", "name": "Aizawl", "state": "Mizoram", "lat": 23.7271, "lon": 92.7176},
-    {"id": "kohima", "name": "Kohima", "state": "Nagaland", "lat": 25.6751, "lon": 94.1086},
-    {"id": "dima-hasao", "name": "Dima Hasao", "state": "Assam", "lat": 25.1830, "lon": 93.0210},
-    {"id": "east-khasi-hills", "name": "East Khasi Hills", "state": "Meghalaya", "lat": 25.5788, "lon": 91.8933},
-    {"id": "lower-dibang-valley", "name": "Lower Dibang Valley", "state": "Arunachal Pradesh", "lat": 28.1400, "lon": 95.8400},
-    {"id": "khowai", "name": "Khowai", "state": "Tripura", "lat": 24.0600, "lon": 91.6000},
-]
-
-# Server-side cache for districts-live endpoint (5 min TTL)
-_districts_live_cache: Dict[str, Any] = {}
-_districts_live_cache_ts: float = 0.0
-DISTRICTS_CACHE_TTL = 300  # 5 minutes
+router = APIRouter(prefix="/api/v1/module1", tags=["Module 1: Landslide early warning"])
 
 
-@router.get("/health", response_model=HealthResponse)
-def health_check():
-    """System health check and model loading verification."""
-    return HealthResponse(
-        status="ok",
-        service="SANKET Module 1 — Landslide Risk Prediction",
-        version="1.0.0",
-        model_loaded=predictor.model is not None,
-        fallback_mode=predictor.model is None,
-    )
+class PointRequest(BaseModel):
+    latitude: float = Field(..., ge=6.0, le=38.0)
+    longitude: float = Field(..., ge=68.0, le=98.0)
+    zone_id: Optional[str] = Field(None, description="Monitoring point id, enables alert hysteresis")
 
 
-@router.get("/credentials-status")
-def credentials_status():
-    """Returns the operational and authentication status of NASA Earthdata, Copernicus DEM, and auxiliary APIs."""
-    return realtime_service.get_credentials_status()
-
-
-@router.get("/environment")
-def get_environment_telemetry(
-    lat: float = Query(..., description="Latitude coordinate"),
-    lon: float = Query(..., description="Longitude coordinate"),
-    district: Optional[str] = Query(None, description="Optional district name for ISRO atlas lookup"),
-):
-    """Returns live enriched satellite weather, DEM topography, and ML hazard evaluation for coordinates."""
-    telemetry = realtime_service.fetch_live_environmental_telemetry(lat=lat, lon=lon, district_name=district)
-    prob, level = predictor.predict(telemetry)
-
+@router.get("/health")
+def health():
     return {
-        "latitude": lat,
-        "longitude": lon,
-        "district": district,
-        "risk_probability": round(prob, 3),
-        "risk_level": level,
-        "risk_score": int(round(prob * 100)),
-        "telemetry": telemetry,
-        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "ok",
+        "service": "SANKET Module 1 - Landslide early warning",
+        "version": "2.0.0",
+        "model": tm.MODEL_NAME,
+        "trained_model_loaded": ml.available(),
+        "note": ("Hazard LEVEL comes from published rainfall thresholds; landslide CONFIDENCE comes from a model "
+                 "trained on NASA catalogue events + ERA5 (see /model)." if ml.available() else
+                 "No trained model yet: hazard level comes from published rainfall thresholds."),
+        "monitored_districts": len(service.registry()),
     }
 
 
-@router.get("/dashboard-summary")
-def get_dashboard_summary():
-    """Aggregates live environmental metrics and AI hazard evaluations across pan-India monitoring hubs."""
-    dist_data = get_districts_live()
-    all_dist = dist_data.get("districts", {})
+@router.get("/model")
+def model_card():
+    """Model card of the trained landslide-confidence model: data, features, honest evaluation."""
+    c = ml.card()
+    if not c:
+        raise HTTPException(status_code=404, detail="No trained model. Run: python -m module1.ml.train")
+    return c
 
-    hub_results = []
-    total_rainfall = 0.0
-    active_risk_count = 0
-    critical_alerts = 0
 
-    for hub in KEY_MONITORING_HUBS:
-        d = all_dist.get(hub["id"])
-        if d:
-            prob = d.get("risk_probability", 0.0)
-            level = d.get("risk_level", "normal")
-            rf24 = d.get("rainfall_24h", 0.0)
-            total_rainfall += rf24
-            if level in ("danger", "warning"):
-                active_risk_count += 1
-            if level == "danger":
-                critical_alerts += 1
-            hub_results.append({
-                **hub,
-                **d
-            })
+@router.get("/thresholds")
+def thresholds():
+    return {"levels": tm.CONFIG["levels"], "durations_hours": tm.CONFIG["durations_hours"],
+            "terrain_gate": tm.CONFIG.get("terrain_gate"),
+            "regions": {rid: tm.region_info(rid) for rid in tm.CONFIG["regions"]}}
 
-    avg_rainfall = round(total_rainfall / max(1, len(hub_results)), 1) if hub_results else 0.0
 
-    # Count risk breakdowns by region
-    himalaya_risk = sum(1 for h in hub_results if h.get("risk_level") in ("danger", "warning") and h.get("state") in ("Uttarakhand", "Himachal Pradesh", "Jammu & Kashmir"))
-    ghats_risk = sum(1 for h in hub_results if h.get("risk_level") in ("danger", "warning") and h.get("state") in ("Kerala", "Maharashtra", "Tamil Nadu"))
-    ner_risk = sum(1 for h in hub_results if h.get("risk_level") in ("danger", "warning") and h.get("state") in ("Manipur", "Sikkim", "Assam", "Meghalaya", "Mizoram", "Nagaland", "Tripura", "Arunachal Pradesh"))
-
+@router.get("/data-sources")
+def data_sources():
+    """What each input really comes from, and whether its credentials are present."""
+    nasa = bool(os.getenv("NASA_EARTHDATA_TOKEN", "").strip())
     return {
-        "active_risk_zones": active_risk_count,
-        "active_risk_zones_breakdown": f"{himalaya_risk} High Himalayas · {ghats_risk} Western Ghats · {ner_risk} NER",
-        "avg_rainfall_24h": avg_rainfall,
-        "areas_monitored": len(hub_results),
-        "critical_alerts_count": critical_alerts,
-        "hubs": hub_results,
-        "is_live": dist_data.get("is_live", False),
-        "cached": dist_data.get("cached", False),
-        "updated_at": dist_data.get("updated_at", datetime.now(timezone.utc).isoformat()),
+        "rainfall_soil_temperature_wind": {"source": "ECMWF IFS 0.25° via Open-Meteo (hourly; same model family as the ERA5 training data)", "key_needed": False,
+                                           "fallback": "last real reading up to 48 h old, flagged stale"},
+        "terrain": {"source": "Copernicus DEM GLO-30 on AWS Open Data", "key_needed": False,
+                    "fallback": "Open-Meteo elevation (GLO-90), elevation only"},
+        "ndvi": {"source": "Sentinel-2 L2A via Copernicus Data Space Statistical API",
+                 "configured": sentinel2.configured(), "fallback": "last real value, flagged stale"},
+        "history_rainfall": {"source": "ERA5 reanalysis via Open-Meteo archive API", "key_needed": False},
+        "infrastructure": {"source": "OpenStreetMap Overpass", "key_needed": False,
+                           "fallback": "last real Overpass response, flagged stale"},
+        "landslide_inventory": {"source": "file import (module1/data/raw/landslide/)", **service.inventory.summary()},
+        "hotspots": {"source": "GSI susceptibility file import, else Copernicus DEM steep-terrain proxy"},
+        "nasa_earthdata_token_present": nasa,
+        "nasa_note": "NASA GPM IMERG is not used for live rain: its point time-series service returned 503 when tested.",
     }
 
 
-@router.post("/predict", response_model=PredictionResponse)
-def predict_risk(request: PredictionRequest):
-    """Predicts continuous landslide risk probability and classifies into hazard tier.
-    
-    If telemetry features (rainfall, soil, slope) are omitted, automatically fetches
-    and enriches with real-time satellite, weather, and DEM elevation data.
-    """
-    feature_dict = request.dict(exclude_none=True)
-
-    # Auto-fetch live environmental telemetry for the coordinates
-    live_env = realtime_service.fetch_live_environmental_telemetry(
-        lat=request.latitude,
-        lon=request.longitude,
-    )
-
-    # Merge: request values override auto-fetched values if explicitly supplied
-    merged_features = {**live_env, **feature_dict}
-
-    prob, level = predictor.predict(merged_features)
-
-    # Core 10 V1 environmental features
-    environment_summary = {
-        "rainfall_24h": merged_features.get("rainfall_24h", 0.0),
-        "rainfall_72h": merged_features.get("rainfall_72h", 0.0),
-        "rainfall_7d": merged_features.get("rainfall_7d", 0.0),
-        "soil_moisture": merged_features.get("soil_moisture", 0.25),
-        "elevation": merged_features.get("elevation", 500.0),
-        "slope": merged_features.get("slope", 20.0),
-        "twi": merged_features.get("twi", 8.5),
-        "ndvi": merged_features.get("ndvi", 0.65),
-        "ndvi_change": merged_features.get("ndvi_change", -0.02),
-        "historical_landslide_count": merged_features.get("historical_landslide_count", 1),
-        "temperature": merged_features.get("temperature", 24.0),
-        "wind_speed": merged_features.get("wind_speed", 12.0),
-    }
-
-    return PredictionResponse(
-        risk_probability=prob,
-        risk_level=level,
-        evaluated_at=datetime.now(timezone.utc).isoformat(),
-        model_version="1.1.0-hgb",
-        zone_id=request.zone_id,
-        is_mock=False,
-        location={
-            "latitude": request.latitude,
-            "longitude": request.longitude,
-            "zone_id": request.zone_id,
-        },
-        environment=environment_summary,
-        data_source=merged_features.get("data_source", "hybrid_realtime"),
-    )
-
-
-@router.post("/explain", response_model=ExplanationResponse)
-def explain_risk(request: PredictionRequest, zone_id: Optional[str] = Query(None)):
-    """Computes TreeSHAP factor attributions explaining why the model assigned the given hazard level."""
-    feature_dict = request.dict(exclude_none=True)
-    live_env = realtime_service.fetch_live_environmental_telemetry(
-        lat=request.latitude,
-        lon=request.longitude,
-    )
-    merged_features = {**live_env, **feature_dict}
-
-    prob, level = predictor.predict(merged_features)
-    factors_raw = explainer.explain_instance(merged_features)
-
-    factors = [FactorAttribution(**f) for f in factors_raw]
-
-    return ExplanationResponse(
-        zone_id=zone_id or request.zone_id,
-        risk_level=level,
-        risk_probability=prob,
-        method=explainer.METHOD,
-        factors=factors,
-    )
-
-
-@router.post("/batch-predict", response_model=BatchPredictionResponse)
-def batch_predict(request: BatchPredictionRequest):
-    """Batch prediction over a list of coordinate/telemetry samples."""
-    results = []
-    for inst in request.instances:
-        # Same enrichment as /predict: auto-fetch telemetry, let explicit values win, and drop
-        # None values (a None in the feature vector crashed the model with a 500).
-        live_env = realtime_service.fetch_live_environmental_telemetry(lat=inst.latitude, lon=inst.longitude)
-        merged = {**live_env, **inst.dict(exclude_none=True)}
-        prob, level = predictor.predict(merged)
-        results.append(
-            PredictionResponse(
-                risk_probability=prob,
-                risk_level=level,
-                evaluated_at=datetime.now(timezone.utc).isoformat(),
-                model_version="1.1.0-hgb",
-                zone_id=inst.zone_id,
-                is_mock=False,
-            )
-        )
-    return BatchPredictionResponse(count=len(results), predictions=results)
-
-
-@router.get("/backtest/noney-2022")
-def run_noney_backtest():
-    """Replays the 29 June 2022 Tupul (Noney, Manipur) railway landslide disaster sequence."""
-    def p_func(rainfall_24h, rainfall_72h, soil_moisture, slope, elevation):
-        f = {
-            "rainfall_24h": rainfall_24h,
-            "rainfall_72h": rainfall_72h,
-            "soil_moisture": soil_moisture,
-            "slope": slope,
-            "elevation": elevation,
-        }
-        return predictor.predict(f)
-
-    return backtester.backtest_noney_2022(p_func)
-
-
-@router.get("/infrastructure")
-def get_critical_infrastructure(
-    lat: float = Query(..., description="Latitude coordinate"),
-    lon: float = Query(..., description="Longitude coordinate"),
-    district: Optional[str] = Query(None, description="District name"),
-    radius_km: float = Query(6.0, description="Spatial search radius in kilometers"),
-    force_refresh: bool = Query(False, description="Bypass cache and force live Overpass query"),
-):
-    """Fetches real-world critical infrastructure (hospitals, highways, schools/shelters, bridges) from OpenStreetMap Overpass."""
-    return osm_service.fetch_infrastructure(
-        lat=lat,
-        lon=lon,
-        radius_km=radius_km,
-        district_name=district,
-        force_refresh=force_refresh,
-    )
+@router.get("/districts")
+def districts():
+    hs = hotspots.load()
+    return {"districts": [{**d, "region_threshold": tm.region_info(tm.region_for_state(d["state"]))["label"],
+                           "hotspot_source": hs[d["id"]]["source"],
+                           "hotspots": [{k: p[k] for k in ("id", "lat", "lon") if k in p} for p in hs[d["id"]]["points"]]}
+                          for d in service.registry().values()]}
 
 
 @router.get("/districts-live")
-def get_districts_live():
-    """Returns live environmental telemetry + ML risk assessment for ALL monitored districts.
+def districts_live(force_refresh: bool = Query(False)):
+    return service.all_districts_live(force=force_refresh)
 
-    Results are cached server-side for 5 minutes to avoid excessive Open-Meteo requests.
-    """
-    global _districts_live_cache, _districts_live_cache_ts
 
-    now = time.time()
-    if _districts_live_cache and (now - _districts_live_cache_ts) < DISTRICTS_CACHE_TTL:
-        return {**_districts_live_cache, "cached": True}
+@router.get("/districts/{district_id}", dependencies=[Depends(current_user)])
+def district_detail(district_id: str):
+    if district_id not in service.registry():
+        raise HTTPException(status_code=404, detail="Unknown district")
+    return service.assess_district(district_id, detail=True)
 
-    with _cache_lock:
-        now = time.time()
-        if _districts_live_cache and (now - _districts_live_cache_ts) < DISTRICTS_CACHE_TTL:
-            return {**_districts_live_cache, "cached": True}
 
-        def _assess(dist: Dict[str, Any]):
-            try:
-                env = realtime_service.fetch_live_environmental_telemetry(
-                    lat=dist["lat"],
-                    lon=dist["lon"],
-                    district_name=dist["name"],
-                )
-                prob, level = predictor.predict(env)
-                return dist["id"], {
-                    "name": dist["name"],
-                    "state": dist["state"],
-                    "lat": dist["lat"],
-                    "lon": dist["lon"],
-                    "risk_level": level,
-                    "risk_probability": round(prob, 3),
-                    "risk_score": int(round(prob * 100)),
-                    "rainfall_24h": round(env.get("rainfall_24h", 0.0), 1),
-                    "rainfall_72h": round(env.get("rainfall_72h", 0.0), 1),
-                    "rainfall_7d": round(env.get("rainfall_7d", 0.0), 1),
-                    "soil_moisture": round(env.get("soil_moisture", 0.0), 4),
-                    "temperature": round(env.get("temperature", 0.0), 1),
-                    "wind_speed": round(env.get("wind_speed", 0.0), 1),
-                    "elevation": round(env.get("elevation", 0.0), 1),
-                    "slope": round(env.get("slope", 0.0), 2),
-                    "ndvi": round(env.get("ndvi", 0.0), 3),
-                    "data_source": env.get("data_source", "hybrid_realtime"),
-                }
-            except Exception:
-                return dist["id"], None
+@router.get("/dashboard-summary")
+def dashboard_summary():
+    live = service.all_districts_live()
+    ds = live["districts"].values()
+    by_region = {}
+    for d in ds:
+        if d["level"] in ("warning", "danger"):
+            by_region[d["region"]] = by_region.get(d["region"], 0) + 1
+    rains = [d["weather"]["rain_mm"]["24"] for d in ds
+             if d.get("weather", {}).get("rain_mm", {}).get("24") is not None]
+    return {
+        "areas_monitored": len(live["districts"]),
+        "hotspots_monitored": sum(len(d.get("hotspots", [])) for d in ds),
+        "counts": live["counts"],
+        "active_risk_zones": live["counts"]["warning"] + live["counts"]["danger"],
+        "active_risk_by_region": by_region,
+        "critical_count": live["counts"]["danger"],
+        "avg_rainfall_24h": round(sum(rains) / len(rains), 1) if rains else None,
+        "districts_with_rain_data": len(rains),
+        "updated_at": live["updated_at"], "cached": live["cached"], "model": live["model"],
+    }
 
-        # The districts are independent network-bound lookups; running them one by one took
-        # 1-2 minutes cold (longer than the frontend timeout), so fan them out.
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            districts_result: Dict[str, Any] = {
-                did: item for did, item in pool.map(_assess, ALL_MONITORED_DISTRICTS) if item
-            }
 
-        result = {
-            "districts": districts_result,
-            "count": len(districts_result),
-            "cache_ttl_seconds": DISTRICTS_CACHE_TTL,
-            "is_live": not is_offline_mode(),
-            "cached": False,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
+@router.get("/environment", dependencies=[Depends(current_user)])
+def environment(lat: float = Query(...), lon: float = Query(...)):
+    """Full real telemetry + threshold evaluation for any point (terrain and NDVI included)."""
+    return service.assess_point(lat, lon, with_terrain=True, with_ndvi=True)
 
-        _districts_live_cache = result
-        _districts_live_cache_ts = now
 
-        return result
+@router.post("/predict", dependencies=[Depends(current_user)])
+def predict(req: PointRequest):
+    """Threshold evaluation for a point (rain + terrain, no NDVI: faster for map clicks)."""
+    return service.assess_point(req.latitude, req.longitude, key=req.zone_id, with_terrain=True)
+
+
+@router.get("/timeseries", dependencies=[Depends(current_user)])
+def timeseries(lat: float = Query(...), lon: float = Query(...), days: int = Query(14, ge=3, le=30),
+               state: Optional[str] = Query(None)):
+    if state is None:
+        state, _ = service.geo.locate(lat, lon)
+    return analytics.recent_series(lat, lon, state, days)
+
+
+@router.get("/history/events", dependencies=[Depends(current_user)])
+def history_events():
+    return {"events": analytics.list_events(), "source": "ERA5 reanalysis via Open-Meteo archive API"}
+
+
+@router.get("/history/events/{event_id}", dependencies=[Depends(current_user)])
+def history_event(event_id: str):
+    try:
+        return analytics.replay_event(event_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Unknown event")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"ERA5 rainfall unavailable: {exc}")
+
+
+@router.get("/infrastructure", dependencies=[Depends(current_user)])
+def infrastructure(lat: float = Query(...), lon: float = Query(...), district: Optional[str] = Query(None),
+                   radius_km: float = Query(6.0, ge=0.5, le=25), force_refresh: bool = Query(False)):
+    return osm_service.fetch_infrastructure(lat=lat, lon=lon, radius_km=radius_km,
+                                            district_name=district, force_refresh=force_refresh)
+
+
+@router.get("/time")
+def server_time():
+    return {"utc": datetime.now(timezone.utc).isoformat()}
+
+
+# --- Module 3: road blockage from a photo (experimental, see module3/service.py) ---------------
+@router.get("/road-blockage/model")
+def road_blockage_model():
+    return road_blockage.model_info()
+
+
+@router.post("/road-blockage", dependencies=[Depends(current_user)])
+async def road_blockage_analyze(file: UploadFile = File(...)):
+    data = await file.read(road_blockage.MAX_BYTES + 1)
+    try:
+        return await run_in_threadpool(road_blockage.analyze, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

@@ -1,8 +1,8 @@
 """Live monitoring: real data in, honest status out.
 
 Fallback chain per input (every value carries status = live | stale | unavailable):
-  rainfall / soil / temperature / wind : Open-Meteo live  ->  last real Open-Meteo reading (<= 48 h,
-                                         windows end at that reading's time)  ->  unavailable
+  rainfall / soil / temperature / wind : Open-Meteo forecast API -> three-hour AWS Open Data on quota errors
+                                         -> last real reading (<= 48 h) -> unavailable
   terrain                              : Copernicus GLO-30 (cached forever)  ->  Open-Meteo 90 m
                                          elevation (elevation only)  ->  unavailable
   NDVI                                 : Sentinel-2 / CDSE  ->  last real value  ->  unavailable
@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ..inference import threshold_model as tm
 from ..ml import predict as ml
-from ..sources import openmeteo, sentinel2, terrain
+from ..sources import ifs_open_data, openmeteo, sentinel2, terrain
 from ..sources.cache import DiskCache, point_key
 from ..sources.http import SourceError
 from . import geo, hotspots, inventory
@@ -38,17 +38,37 @@ def _weather_fallback(hit, now: float, exc: SourceError) -> Dict[str, Any]:
     return {**meta, "status": "unavailable"}
 
 
+def _weather_is_current(hit, now: datetime) -> bool:
+    if not hit:
+        return False
+    reading, _ = hit
+    step = reading.get("interval_hours", 1)
+    expected = now.replace(hour=now.hour - now.hour % step, minute=0, second=0, microsecond=0)
+    return reading["hourly"]["time"][-1] == expected.strftime("%Y-%m-%dT%H:00")
+
+
+def _open_data_fallback(keys, points, readings, saved):
+    try:
+        fallback = ifs_open_data.fetch_live([points[key] for key in keys])
+    except SourceError:
+        return
+    for key, weather in zip(keys, fallback):
+        if not any(value is not None for value in weather["hourly"]["precipitation"]):
+            continue
+        saved[key] = weather
+        readings[key] = {**weather, "status": "live", "age_minutes": 0}
+
+
 def weather_for(points: Sequence[Tuple[float, float]]) -> List[Dict[str, Any]]:
     """Reuse completed-hour weather across dashboard and detail calls, then fetch missing points."""
     point_by_key = {point_key(*p): p for p in points}
     with _weather_lock:
         now = datetime.now(timezone.utc)
-        hour = now.strftime("%Y-%m-%dT%H:00")
         hits = {key: _weather_cache.get(key) for key in point_by_key}
         readings = {}
         missing = []
         for key, hit in hits.items():
-            if hit and hit[0]["hourly"]["time"][-1] == hour:
+            if _weather_is_current(hit, now):
                 readings[key] = {**hit[0], "status": "live", "age_minutes": int((now.timestamp() - hit[1]) / 60)}
             else:
                 missing.append(key)
@@ -62,6 +82,7 @@ def weather_for(points: Sequence[Tuple[float, float]]) -> List[Dict[str, Any]]:
                 remaining = missing[start:] if exc.status == 429 else keys
                 readings.update({key: _weather_fallback(hits[key], now.timestamp(), exc) for key in remaining})
                 if exc.status == 429:
+                    _open_data_fallback(remaining, point_by_key, readings, saved)
                     break
             else:
                 saved.update(zip(keys, live))
@@ -81,20 +102,24 @@ def summarize_weather(w: Dict[str, Any]) -> Dict[str, Any]:
     if w.get("status") == "unavailable":
         return {"status": "unavailable", "reason": w.get("reason"), "issue": w.get("issue")}
     h = w["hourly"]
-    p = [0.0 if v is None else float(v) for v in h["precipitation"]]
+    p = h["precipitation"]
+    step = w.get("interval_hours", 1)
+    last_day = [v for v in p[-24:] if v is not None]
+    chart_count = 72 // step
     return {
         "status": w["status"], "age_minutes": w.get("age_minutes", 0), "reason": w.get("reason"),
         "issue": w.get("issue"),
         "source": w["source"], "fetched_at": w["fetched_at"],
-        "window_end_utc": h["time"][-1] + "Z",
-        "rain_mm": {str(k): v for k, v in tm.window_sums(p).items()},
-        "max_hourly_rain_24h_mm": round(max(p[-24:]), 1) if p else None,
+        "window_end_utc": h["time"][-1] + "Z", "interval_hours": step,
+        "rain_mm": {str(k): v for k, v in tm.window_sums(p, step_hours=step).items()},
+        "max_hourly_rain_24h_mm": round(max(last_day), 1) if step == 1 and last_day else None,
         "soil_moisture_7_28cm": _last(h.get("soil_moisture_7_to_28cm")),
         "soil_moisture_28_100cm": _last(h.get("soil_moisture_28_to_100cm")),
         "temperature_c": _last(h.get("temperature_2m")),
         "wind_kmh": _last(h.get("wind_speed_10m")),
         "wind_gust_kmh": _last(h.get("wind_gusts_10m")),
-        "hourly_rain_72h": [{"time": t + "Z", "mm": v} for t, v in zip(h["time"][-72:], h["precipitation"][-72:])],
+        "hourly_rain_72h": [{"time": t + "Z", "mm": v}
+                            for t, v in zip(h["time"][-chart_count:], p[-chart_count:])],
     }
 
 
@@ -118,7 +143,8 @@ def _evaluate(w: Dict[str, Any], region_id: str, key: Optional[str]) -> Dict[str
     if w.get("status") == "unavailable":
         return {"level": "unknown", "ratio": None, "reason": "no rainfall data (live and last-known both unavailable)",
                 "region": tm.region_info(region_id)}
-    return tm.hysteresis.evaluate(key, w["hourly"]["precipitation"], region_id)
+    return tm.hysteresis.evaluate(key, w["hourly"]["precipitation"], region_id,
+                                  step_hours=w.get("interval_hours", 1))
 
 
 def _apply_terrain_gate(ev: Dict[str, Any], terrain: Dict[str, Any]) -> None:
@@ -144,13 +170,17 @@ def assess_point(lat: float, lon: float, *, state: Optional[str] = None, key: Op
         state, district = geo.locate(lat, lon)
     region_id = tm.region_for_state(state)
     w = weather or weather_for([(lat, lon)])[0]
+    confidence = {"status": "unavailable", "reason": "no weather data"}
+    if w.get("interval_hours", 1) != 1:
+        confidence["reason"] = "The confidence model requires hourly inputs."
+    elif w.get("status") != "unavailable":
+        confidence = ml.confidence(w["hourly"], lat, lon)
     out = {
         "latitude": lat, "longitude": lon, "state": state, "district": district,
         "evaluation": _evaluate(w, region_id, key),
         "weather": summarize_weather(w),
         "landslide_history": inventory.nearby_count(lat, lon),
-        "confidence": (ml.confidence(w["hourly"], lat, lon) if w.get("status") != "unavailable"
-                       else {"status": "unavailable", "reason": "no weather data"}),
+        "confidence": confidence,
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
         "model": tm.MODEL_NAME,
     }
@@ -177,8 +207,10 @@ def assess_district(district_id: str, detail: bool = False,
     pts = hs["points"]
     locations = [(p["lat"], p["lon"]) for p in pts]
     weathers = weather_for(locations) if weather_by_point is None else [weather_by_point[p] for p in locations]
-    if any(w["status"] != "unavailable" for w in weathers):
-        ml.prefetch_terrain(locations)
+    hourly_locations = [loc for loc, w in zip(locations, weathers)
+                        if w["status"] != "unavailable" and w.get("interval_hours", 1) == 1]
+    if hourly_locations:
+        ml.prefetch_terrain(hourly_locations)
     results = []
 
     def one(i):

@@ -55,7 +55,7 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
   const ev = detail?.evaluation;
   const hourly = useMemo(() => (detail?.weather?.hourly_rain_72h || []).map((h) => ({
     t: new Date(h.time).toLocaleString('en-IN', { day: '2-digit', hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }),
-    mm: h.mm ?? 0,
+    mm: h.mm,
   })), [detail]);
 
   if (!live.data && live.loading) return <div className="card" style={{ padding: 24 }}>Loading live district data…</div>;
@@ -82,14 +82,16 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
           style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 800, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
           Confidence {typeof d.confidence === 'number' ? `${Math.round(d.confidence * 100)}%` : '—'}
         </span>}
-        {d && <DataSourceBadge compact status={d.weather_status} source="ECMWF IFS hourly via Open-Meteo" updatedAt={w.window_end_utc} ageMinutes={w.age_minutes} />}
+        {d && <DataSourceBadge compact status={d.weather_status} source={w.source || 'ECMWF IFS via Open-Meteo'} updatedAt={w.window_end_utc} ageMinutes={w.age_minutes} />}
         {w.window_end_utc && <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>
           rain up to {new Date(w.window_end_utc).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} IST
         </span>}
       </div>
 
-      {rateLimited && <div className="card" role="status" style={{ padding: '12px 16px' }}>
-        Open-Meteo’s request limit was reached. The last available readings are marked stale.
+      {(w.interval_hours > 1 || rateLimited) && <div className="card" role="status" style={{ padding: '12px 16px' }}>
+        {w.interval_hours > 1
+          ? 'Using three-hour ECMWF readings from AWS Open Data. One-hour rain and model confidence require hourly readings.'
+          : 'Open-Meteo’s request limit was reached. The last available readings are marked stale.'}
       </div>}
 
       {/* Map of this district's hotspots */}
@@ -137,7 +139,7 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
             {/* Hourly rain chart */}
             <div className="card">
               <div className="card-head">
-                <div className="card-title" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><IconClock width={14} height={14} /> Hourly rain, last 72 h</div>
+                <div className="card-title" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><IconClock width={14} height={14} /> {detail.weather?.interval_hours > 1 ? '3-hour rain, last 72 h' : 'Hourly rain, last 72 h'}</div>
               </div>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">

@@ -92,6 +92,47 @@ def test_weather_failure_serves_last_real_reading_as_stale(monkeypatch):
     assert w["status"] == "stale" and w["hourly"]["precipitation"] == [0.0] * 240
 
 
+def test_public_weather_archive_supplies_native_intervals_after_quota(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from module1.sources import ifs_open_data
+
+    now = datetime.now(timezone.utc)
+    end = now.replace(hour=now.hour - now.hour % 3, minute=0, second=0, microsecond=0)
+    monkeypatch.setattr(service, "datetime", type("FixedTime", (), {"now": staticmethod(lambda _: now)}))
+    point = (25.5621, 91.8664)
+    calls = []
+
+    def limited(points):
+        raise SourceError("Daily request limit reached", status=429)
+
+    def archive(points):
+        calls.append(points)
+        times = [(end - timedelta(hours=3 * (79 - i))).strftime("%Y-%m-%dT%H:%M") for i in range(80)]
+        reading = {"interval_hours": 3, "source": ifs_open_data.SOURCE, "fetched_at": now.isoformat(),
+                   "hourly": {"time": times, "precipitation": [1.5] * 80, "temperature_2m": [15.0] * 80}}
+        return [reading for _ in points]
+
+    monkeypatch.setattr(openmeteo, "fetch_live", limited)
+    monkeypatch.setattr(ifs_open_data, "fetch_live", archive)
+    result = service.assess_point(*point, state="Meghalaya", with_terrain=False)
+    weather = result["weather"]
+    assert weather["status"] == "live"
+    assert weather["interval_hours"] == 3
+    assert weather["rain_mm"]["1"] is None
+    assert weather["rain_mm"]["24"] == 12.0
+    assert len(weather["hourly_rain_72h"]) == 24
+    assert result["confidence"]["status"] == "unavailable"
+    assert service.weather_for([point])[0]["status"] == "live"
+    assert calls == [[point]]
+
+
+def test_rainfall_windows_preserve_missing_intervals():
+    sums = tm.window_sums([1.0, None, 2.0], step_hours=3)
+    assert sums[1] is None
+    assert sums[3] == 2.0
+    assert sums[6] is None
+
+
 # --------------------------------------------------------------------------- model features
 def test_weather_features_windows_and_soil():
     from module1.ml import features as F

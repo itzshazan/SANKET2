@@ -47,12 +47,16 @@ def threshold_mm(region_id: str, hours: float) -> Optional[float]:
     return e if e > 0 else None
 
 
-def window_sums(precip: Sequence[Optional[float]]) -> Dict[int, Optional[float]]:
-    """Trailing rain totals ending at the last element (latest completed hour)."""
-    vals = [0.0 if v is None else float(v) for v in precip]
+def window_sums(precip: Sequence[Optional[float]], *, step_hours: int = 1) -> Dict[int, Optional[float]]:
+    """Trailing rainfall over complete, aligned intervals."""
     out = {}
-    for d in CONFIG["durations_hours"]:
-        out[d] = round(sum(vals[-d:]), 1) if len(vals) >= d else None
+    for duration in CONFIG["durations_hours"]:
+        count, remainder = divmod(duration, step_hours)
+        if remainder or count > len(precip):
+            out[duration] = None
+            continue
+        values = precip[-count:]
+        out[duration] = None if any(v is None for v in values) else round(sum(values), 1)
     return out
 
 
@@ -69,8 +73,8 @@ def level_for_ratio(ratio: float, previous: Optional[str] = None) -> str:
 
 
 def evaluate(precip_hourly: Sequence[Optional[float]], region_id: str,
-             previous_level: Optional[str] = None) -> Dict[str, Any]:
-    sums = window_sums(precip_hourly)
+             previous_level: Optional[str] = None, *, step_hours: int = 1) -> Dict[str, Any]:
+    sums = window_sums(precip_hourly, step_hours=step_hours)
     windows: List[Dict[str, Any]] = []
     best = None
     for d, rain in sums.items():
@@ -90,7 +94,7 @@ def evaluate(precip_hourly: Sequence[Optional[float]], region_id: str,
         return {"level": level_for_ratio(0.0, previous_level), "ratio": 0.0, "governing_window": None,
                 "windows": windows, "rain_windows_mm": sums, "region": region_info(region_id),
                 "levels": {k: CONFIG["levels"][k] for k in ("watch", "warning", "danger")},
-                "reason": f"no rain in the last {max(CONFIG['durations_hours'])} hours"}
+                "reason": f"no rain in the last {max(row['hours'] for row in windows)} hours"}
     return {
         "level": level_for_ratio(best["ratio"], previous_level),
         "ratio": best["ratio"],
@@ -109,10 +113,10 @@ class HysteresisMemory:
         self._last: Dict[str, str] = {}
         self._lock = threading.Lock()
 
-    def evaluate(self, key: Optional[str], precip, region_id: str) -> Dict[str, Any]:
+    def evaluate(self, key: Optional[str], precip, region_id: str, *, step_hours: int = 1) -> Dict[str, Any]:
         with self._lock:
             prev = self._last.get(key) if key else None
-        res = evaluate(precip, region_id, prev)
+        res = evaluate(precip, region_id, prev, step_hours=step_hours)
         if key and res["level"] != "unknown":
             with self._lock:
                 self._last[key] = res["level"]

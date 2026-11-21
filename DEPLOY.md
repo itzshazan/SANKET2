@@ -79,7 +79,11 @@ After deployment, check `/api/v1/module1/road-blockage/model` on Render for
 sample photos on Road Blockage. The compact model has its own validation results.
 
 The free Open-Meteo forecast API has a request quota. SANKET reuses readings for the latest
-completed hour and backs off after a quota response. If you already have an Open-Meteo subscription,
+completed hour and backs off after a quota response. Live Monitor and Overview then read native
+three-hour ECMWF samples through [Open-Meteo on AWS Open Data](https://registry.opendata.aws/open-meteo/)
+(CC BY 4.0, nearest grid cell). This keeps the longer rain windows, soil moisture, temperature and
+wind available. One-hour rain and model confidence require the primary hourly feed.
+If you already have an Open-Meteo subscription,
 set `OPEN_METEO_API_KEY` in Render to use the dedicated forecast endpoint. During an outage the site
 shows the last real readings as stale when available.
 

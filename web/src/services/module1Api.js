@@ -71,7 +71,7 @@ export const module1Api = {
     const form = new FormData();
     form.append('file', file, file.name || 'photo.jpg');
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 60000);
+    const t = setTimeout(() => ctrl.abort(), 120000);
     try {
       const token = getAccessToken();
       const res = await fetch(`${apiClient.baseUrl}${API}/road-blockage`, {

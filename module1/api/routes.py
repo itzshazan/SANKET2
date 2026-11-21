@@ -176,8 +176,7 @@ def road_blockage_model():
 
 @router.post("/road-blockage", dependencies=[Depends(current_user)])
 async def road_blockage_analyze(file: UploadFile = File(...)):
-    data = await file.read(road_blockage.MAX_BYTES + 1)
     try:
-        return await run_in_threadpool(road_blockage.analyze, data)
+        return await run_in_threadpool(road_blockage.analyze_upload, file.file)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

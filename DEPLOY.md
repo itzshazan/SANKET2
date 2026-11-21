@@ -44,10 +44,10 @@ git add -f module1/data/raw/landslide/*.csv module1/data/raw/landslide/*.geojson
    | Branch | `main` |
    | Root Directory | *(leave empty)* |
    | Runtime | **Python 3** |
-   | Build Command | `pip install -r requirements.txt` |
-   | Start Command | `uvicorn module1.api.main:app --host 0.0.0.0 --port $PORT` |
+   | Build Command | Use the command below to include Road Blockage |
+   | Start Command | `OPENBLAS_NUM_THREADS=1 MALLOC_ARENA_MAX=2 uvicorn module1.api.main:app --host 0.0.0.0 --port $PORT --workers 1` |
    | Health Check Path | `/api/v1/module1/health` (under *Advanced*) |
-   | Instance Type | see the table below |
+   | Instance Type | **Free** |
 
 3. **Environment variables** (copy the values from your local `.env`; never put them in the code):
 
@@ -64,19 +64,18 @@ git add -f module1/data/raw/landslide/*.csv module1/data/raw/landslide/*.geojson
 4. **Create Web Service**. When it is live, open `https://<your-service>.onrender.com/api/v1/module1/health`; it
    should answer with JSON. Copy this `https://<your-service>.onrender.com` address for step 2.
 
-**Which instance type** (measured: the API uses about 200 MB; checking one road photo needs about 1.2 GB):
-
-| | Free (512 MB) | Standard (2 GB) |
-|---|---|---|
-| Everything except road photos | ✓ | ✓ |
-| Road Blockage photo check | shows "not installed on this server" | ✓ with the build command below |
-| Sleeps when idle | after 15 min (first visit then takes about a minute) | no |
-
-For road photos use **Standard** and this Build Command (CPU-only PyTorch, then the 237 MB model):
+**Free plan build command with Road Blockage**
 
 ```bash
-pip install -r requirements.txt -r requirements-road.txt && python -m module3.download_weights
+pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt -r requirements-road-onnx.txt && python -m module3.download_weights && python -m module3.export_onnx
 ```
+
+Render's build job prepares a roughly 60 MB ONNX model from the existing ADE20K weights. The
+running API loads it when the first photo is submitted. Use one worker to keep a single model in
+memory. The Free instance sleeps after 15 minutes idle, so the first request can be slow.
+After deployment, check `/api/v1/module1/road-blockage/model` on Render for
+`"available": true` and `"runtime": "onnx-int8"`. Then sign in to SANKET and analyze one of the
+sample photos on Road Blockage. The compact model has its own validation results.
 
 **Field reports and incidents** are stored in a SQLite file. Render's disk is wiped on every deploy and restart, so
 on a plain instance they are lost. To keep them (paid instances): service → **Disks** → **Add disk**, mount path

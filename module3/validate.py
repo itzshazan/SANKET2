@@ -7,7 +7,7 @@ the exact blocked percentage is not known, so this is a pass/fail check:
   * a clear road passes if the model reports < 10 %;
   * "no road recognised" is counted separately (the model declines to answer).
 
-Writes module3/validation/results.json, which the Road Blockage tab shows.
+Writes a validation report for the active runtime, which the Road Blockage tab shows.
 Run:  python -m module3.validate
 """
 
@@ -15,21 +15,18 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import Image
-
-from . import scene_model
+from . import service
 
 ROOT = Path(__file__).resolve().parent
 PHOTOS = ROOT.parent / "web" / "public" / "module3-samples"
 MANIFEST = ROOT / "validation" / "photos.json"
-RESULTS = ROOT / "validation" / "results.json"
 
 
 def main():
     photos = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rows = []
     for p in photos:
-        r = scene_model.analyze(Image.open(PHOTOS / p["file"]).convert("RGB"))
+        r = service.analyze((PHOTOS / p["file"]).read_bytes())
         pct = r.get("blockage_percentage")
         if r["status"] == "no_road":
             outcome = "no_road"
@@ -56,7 +53,7 @@ def main():
     }
     out = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "rule": "blocked if >= 10 % of the road width is blocked", "summary": summary, "photos": rows}
-    RESULTS.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    service.validation_path().write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(summary))
 
 

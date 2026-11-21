@@ -1,0 +1,5 @@
+# Render Free build and runtime for the compact road photo model.
+-r requirements-road.txt
+segmentation-models-pytorch==0.6.0
+onnx==1.23.2
+onnxruntime==1.28.0

@@ -29,12 +29,17 @@ and what is blocking it (soil and mud, rocks, fallen trees, flood water, barrica
 Known weak spots: slides that push in from the side of the road (the road edge simply bends
 around them) and gravel roads, which can be read as soil.
 
-## Setup
+## Full model setup for local use
 
 ```bash
 pip install -r requirements.txt -r requirements-road.txt   # CPU-only PyTorch
 python -m module3.download_weights       # 237 MB, saved in module3/saved_models/ (git-ignored)
 ```
+
+On Render Free, the build in the [deployment guide](../DEPLOY.md) exports the same model's
+weights as signed 8-bit ONNX weights. It segments photos at a lower input resolution. The API
+automatically uses the export when present and the Road Blockage page shows the compact model's
+own results. For large uploads, use JPEG. The compact runtime checks one photo at a time.
 
 API: `GET /api/v1/module1/road-blockage/model`, `POST /api/v1/module1/road-blockage`
 (multipart field `file`, image up to 10 MB).

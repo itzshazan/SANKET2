@@ -18,6 +18,7 @@ If no road surface is recognised the result says so instead of guessing.
 
 import base64
 import io
+import logging
 import threading
 import time
 from pathlib import Path
@@ -25,6 +26,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+from . import road_onnx
 from .ade20k_classes import ADE20K_CLASSES
 
 SEVERITY_LEVELS = ["Clear", "Minor", "Moderate", "Severe", "Critical"]
@@ -46,8 +48,7 @@ def pct_to_severity(pct):
 MODEL_DIR = Path(__file__).resolve().parent / "saved_models" / "upernet_convnext_tiny_ade20k"
 HF_REPO = "smp-hub/upernet-convnext-tiny"
 MAX_SIDE = 512                      # inference resolution (longer side), multiple of 32
-MEAN = np.array([123.675, 116.28, 103.53], dtype=np.float32)
-STD = np.array([58.395, 57.12, 57.375], dtype=np.float32)
+log = logging.getLogger(__name__)
 
 _ix = {n: i for i, n in enumerate(ADE20K_CLASSES)}
 ROAD = [_ix[n] for n in ("road", "path", "dirt", "sidewalk")]   # 'dirt' = dirt track
@@ -108,7 +109,7 @@ def _segment(img):
     s = MAX_SIDE / max(w, h)
     nw, nh = max(32, int(round(w * s / 32)) * 32), max(32, int(round(h * s / 32)) * 32)
     small = img.resize((nw, nh), Image.Resampling.BILINEAR)
-    x = (np.asarray(small, dtype=np.float32) - MEAN) / STD
+    x = (np.asarray(small, dtype=np.float32) - road_onnx.MEAN) / road_onnx.STD
     t = torch.from_numpy(x).permute(2, 0, 1).unsqueeze(0)
     with torch.inference_mode():
         logits = _state["model"](t)
@@ -202,12 +203,21 @@ def _overlay(small, mask, corridor_mask, road, obstacle, left, right):
 
 def analyze(img):
     """img: RGB PIL image. Returns a JSON-serialisable result."""
-    _load()
-    if _state["model"] is None:
-        return {"status": "unavailable", "reason": _state["error"]}
+    compact = road_onnx.MODEL_PATH.is_file()
+    if not compact:
+        _load()
+        if _state["model"] is None:
+            return {"status": "unavailable", "reason": _state["error"]}
     t0 = time.perf_counter()
-    with _lock:                                   # one inference at a time keeps memory low
-        mask, small = _segment(img)
+    with _lock:
+        if compact:
+            try:
+                mask, small = road_onnx.segment(img)
+            except Exception:
+                log.exception("ONNX road segmentation failed")
+                return {"status": "unavailable", "reason": "The road model could not process this photo."}
+        else:
+            mask, small = _segment(img)
     h, w = mask.shape
     road = np.isin(mask, ROAD)
     groups = [c for c, g in GROUP_OF.items() if COUNT_VEHICLES or g != "vehicle"]

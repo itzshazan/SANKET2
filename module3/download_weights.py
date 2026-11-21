@@ -9,7 +9,12 @@ from .scene_model import HF_REPO, MODEL_DIR
 
 
 def main():
-    path = snapshot_download(HF_REPO, local_dir=str(MODEL_DIR))
+    path = snapshot_download(
+        HF_REPO,
+        revision="e1fb07fc2dadc8bab9bba593ad55ddea37b2017b",
+        local_dir=str(MODEL_DIR),
+        allow_patterns=["model.safetensors", "config.json", "README.md"],
+    )
     print("weights in", path)
 
 

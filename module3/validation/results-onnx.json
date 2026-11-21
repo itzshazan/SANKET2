@@ -1,0 +1,182 @@
+{
+  "generated_at": "2026-11-21T16:31:55+00:00",
+  "rule": "blocked if >= 10 % of the road width is blocked",
+  "summary": {
+    "blocked_total": 8,
+    "blocked_detected": 5,
+    "blocked_no_road": 1,
+    "clear_total": 6,
+    "clear_correct": 3,
+    "clear_no_road": 2
+  },
+  "photos": [
+    {
+      "file": "atami.jpg",
+      "label": "Atami, Japan: road closed after landslide",
+      "expected": "blocked",
+      "outcome": "pass",
+      "blockage_percentage": 98.4,
+      "causes": [
+        "barricades",
+        "soil and mud"
+      ],
+      "author": "番記者",
+      "license": "CC BY-SA 4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Road_blocked_by_Atami_landslide.jpg"
+    },
+    {
+      "file": "girdu.jpg",
+      "label": "Girdu, Pakistan: landslide across road",
+      "expected": "blocked",
+      "outcome": "no_road",
+      "blockage_percentage": null,
+      "causes": [],
+      "author": "Engriq",
+      "license": "CC BY-SA 3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Road_Block_due_to_landslide_at_Girdu.JPG"
+    },
+    {
+      "file": "kentucky.jpg",
+      "label": "Kentucky Route 8, USA: mud and trees",
+      "expected": "blocked",
+      "outcome": "pass",
+      "blockage_percentage": 100.0,
+      "causes": [
+        "soil and mud"
+      ],
+      "author": "CaseGrillot",
+      "license": "CC0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Landslide_on_Kentucky_Route_8.jpg"
+    },
+    {
+      "file": "zenia.jpg",
+      "label": "Zenia Bluff Road, USA: rockfall",
+      "expected": "blocked",
+      "outcome": "pass",
+      "blockage_percentage": 100.0,
+      "causes": [
+        "rocks and debris"
+      ],
+      "author": "Trinity County Department of Transportation",
+      "license": "Public domain",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Landslide_Zenia_Bluff_Road.jpg"
+    },
+    {
+      "file": "shorwell.jpg",
+      "label": "Shorwell, UK: landslip from the side",
+      "expected": "blocked",
+      "outcome": "fail",
+      "blockage_percentage": 0.0,
+      "causes": [],
+      "author": "ITookSomePhotos",
+      "license": "CC BY 4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Landslip_blocking_road_near_Shorwell,_Isle_of_Wight,_England.jpg"
+    },
+    {
+      "file": "us30.jpg",
+      "label": "U.S. 30, USA: landslide",
+      "expected": "blocked",
+      "outcome": "fail",
+      "blockage_percentage": 0.0,
+      "causes": [],
+      "author": "Oregon Department of Transportation",
+      "license": "CC BY 2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:A_landslide_blocks_U.S._30_(52536644890).jpg"
+    },
+    {
+      "file": "mallorca.jpg",
+      "label": "Ma-2100, Mallorca: storm landslide",
+      "expected": "blocked",
+      "outcome": "pass",
+      "blockage_percentage": 29.8,
+      "causes": [
+        "soil and mud"
+      ],
+      "author": "Graeme Churchard",
+      "license": "CC BY 2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Storm_Gloria_landslide_on_the_Ma-2100,_Mallorca_(1).jpg"
+    },
+    {
+      "file": "puray.jpg",
+      "label": "Rizal, Philippines: earthslide, part of road open",
+      "expected": "blocked",
+      "outcome": "pass",
+      "blockage_percentage": 36.9,
+      "causes": [
+        "soil and mud"
+      ],
+      "author": "Paul Christian B. Yang-ed",
+      "license": "CC BY-SA 4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Earthslide_partially_blocking_Puray-Mascap_Road,_Rizal_Province,_Philippines.jpg"
+    },
+    {
+      "file": "clear_darcha.jpg",
+      "label": "Darcha–Padum road, Himachal",
+      "expected": "clear",
+      "outcome": "no_road",
+      "blockage_percentage": null,
+      "causes": [],
+      "author": "Timothy A. Gonsalves",
+      "license": "CC BY-SA 4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Darcha_Padum_Road_Below_Shinku_La_Lahaul_Oct22_A7C_03533.jpg"
+    },
+    {
+      "file": "clear_lahaul.jpg",
+      "label": "Road to Lahaul valley, Himachal",
+      "expected": "clear",
+      "outcome": "pass",
+      "blockage_percentage": 0.0,
+      "causes": [],
+      "author": "Tanvi.sharmaaa",
+      "license": "CC BY-SA 4.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mountain_Road_towards_Lahaul_Valley,_Himachal_Pradesh.jpg"
+    },
+    {
+      "file": "clear_nh7.jpg",
+      "label": "NH 7, Andhra Pradesh",
+      "expected": "clear",
+      "outcome": "pass",
+      "blockage_percentage": 0.0,
+      "causes": [],
+      "author": "Prashanth NS",
+      "license": "CC BY-SA 2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:4_lane_NH_7_highway_in_Andhra_Pradesh_India.jpg"
+    },
+    {
+      "file": "clear_nelliampathy.jpg",
+      "label": "Nelliampathy ghat road, Kerala",
+      "expected": "clear",
+      "outcome": "pass",
+      "blockage_percentage": 0.0,
+      "causes": [],
+      "author": "Jaseem Hamza",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nelliampathy_Ghat_Road_-_panoramio.jpg"
+    },
+    {
+      "file": "clear_valparai.jpg",
+      "label": "Valparai ghat road, Tamil Nadu",
+      "expected": "clear",
+      "outcome": "no_road",
+      "blockage_percentage": null,
+      "causes": [],
+      "author": "Jaseem Hamza",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Ghat_Road,_Valparai_-_panoramio.jpg"
+    },
+    {
+      "file": "clear_uk_rural.jpg",
+      "label": "Rural road, Uttarakhand",
+      "expected": "clear",
+      "outcome": "fail",
+      "blockage_percentage": 26.8,
+      "causes": [
+        "rocks and debris",
+        "soil and mud"
+      ],
+      "author": "anurag agnihotri",
+      "license": "CC BY 2.0",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Rural_road_Uttarakhand_India.jpg"
+    }
+  ]
+}

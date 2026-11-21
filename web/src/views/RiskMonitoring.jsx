@@ -78,7 +78,7 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
         {d && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--text-muted)' }}>
           {typeof d.ratio === 'number' ? `${d.ratio.toFixed(2)}× threshold` : 'no rainfall data'}
         </span>}
-        {d && <span title="Trained model: chance of a recorded landslide near the worst hotspot today"
+        {d && <span title={d.confidence_variant === 'rain_soil' ? 'Rain and soil model score calibrated on recorded cases' : 'Landslide model score calibrated on recorded cases'}
           style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 800, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
           Confidence {typeof d.confidence === 'number' ? `${Math.round(d.confidence * 100)}%` : '—'}
         </span>}
@@ -90,7 +90,7 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
 
       {(w.interval_hours > 1 || rateLimited) && <div className="card" role="status" style={{ padding: '12px 16px' }}>
         {w.interval_hours > 1
-          ? 'Using three-hour ECMWF readings from AWS Open Data. One-hour rain and model confidence require hourly readings.'
+          ? 'Using three-hour ECMWF readings from AWS Open Data. Confidence uses the rain and soil model.'
           : 'Open-Meteo’s request limit was reached. The last available readings are marked stale.'}
       </div>}
 
@@ -186,13 +186,13 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
             return (
               <div className="card">
                 <div className="card-head">
-                  <div className="card-title">Landslide confidence</div>
+                  <div className="card-title">{c?.variant === 'rain_soil' ? 'Rain and soil confidence' : 'Landslide confidence'}</div>
                 </div>
                 {!c || c.status !== 'live' ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c?.reason || 'Confidence unavailable.'}</div> : (
                   <div className="grid stack-sm" style={{ gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
                     <div style={{ textAlign: 'center', padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}>
                       <div style={{ fontSize: 40, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{Math.round(c.confidence * 100)}%</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>worst hotspot ({h.id})</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>hotspot {h.id}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 6 }}>What drives it</div>

@@ -12,6 +12,10 @@ import math
 from typing import Dict, List, Optional, Sequence, Tuple
 
 RAIN_WINDOWS = [1, 3, 6, 12, 24, 48, 72, 120, 168, 240]
+RAIN_SOIL_WINDOWS = [h for h in RAIN_WINDOWS if h % 3 == 0]
+RAIN_SOIL_FEATURES = [f"rain_{h}h" for h in RAIN_SOIL_WINDOWS] + [
+    "soil_7_28", "soil_28_100", "soil_7_28_change_72h",
+]
 STENCIL_DEG = 0.005
 
 FEATURES = (
@@ -66,6 +70,23 @@ def weather_features(hourly: Dict[str, list]) -> Optional[Dict[str, float]]:
     return out
 
 
+def rain_soil_features(weather: Dict[str, list], interval_hours: int) -> Optional[Dict[str, float]]:
+    """Features with the same definitions at one-hour and three-hour resolution."""
+    precip = (weather.get("precipitation") or [])[-max(RAIN_SOIL_WINDOWS) // interval_hours:]
+    if len(precip) * interval_hours < max(RAIN_SOIL_WINDOWS) or any(v is None for v in precip):
+        return None
+    shallow = weather.get("soil_moisture_7_to_28cm") or []
+    deep = weather.get("soil_moisture_28_to_100cm") or []
+    now, previous, lower = _last(shallow), _last(shallow[:-72 // interval_hours]), _last(deep)
+    if now is None or previous is None or lower is None:
+        return None
+    return {
+        **{f"rain_{hours}h": round(sum(precip[-hours // interval_hours:]), 2) for hours in RAIN_SOIL_WINDOWS},
+        "soil_7_28": round(now, 4), "soil_28_100": round(lower, 4),
+        "soil_7_28_change_72h": round(now - previous, 4),
+    }
+
+
 def stencil_points(lat: float, lon: float) -> List[Tuple[float, float]]:
     """Centre, ~550 m north, ~550 m east."""
     d = STENCIL_DEG
@@ -82,5 +103,5 @@ def terrain_features(elev: Sequence[float], lat: float) -> Dict[str, float]:
             "gradient_550m_deg": round(grad, 2)}
 
 
-def vector(feat: Dict[str, Optional[float]]) -> List[float]:
-    return [float("nan") if feat.get(k) is None else float(feat[k]) for k in FEATURES]
+def vector(feat: Dict[str, Optional[float]], names: Sequence[str] = FEATURES) -> List[float]:
+    return [float("nan") if feat.get(k) is None else float(feat[k]) for k in names]

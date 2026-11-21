@@ -11,6 +11,7 @@ reported: with rare events it rewards a model that never warns.
 Run:  python -m module1.ml.train
 """
 
+import argparse
 import csv
 import json
 from datetime import datetime, timezone
@@ -31,6 +32,8 @@ SAMPLES = ROOT / "data" / "training" / "samples.csv"
 TRAIN_LAST_YEAR = 2016          # train 2007-2016, test 2017-2024 (recent events the model never saw)
 MODEL_PATH = ROOT / "models" / "landslide_confidence_v1.joblib"
 CARD_PATH = ROOT / "models" / "landslide_confidence_v1.card.json"
+RAIN_SOIL_MODEL_PATH = ROOT / "models" / "landslide_confidence_rain_soil.joblib"
+RAIN_SOIL_CARD_PATH = ROOT / "models" / "landslide_confidence_rain_soil.card.json"
 GROUPS = {
     "Rainfall": [f for f in F.FEATURES if f.startswith("rain_") or f == "max_hourly_rain_24h"],
     "Soil moisture": ["soil_7_28", "soil_28_100", "soil_7_28_change_72h"],
@@ -51,10 +54,10 @@ def load():
     return X, y, meta
 
 
-def make_model():
+def make_model(feature_names=F.FEATURES):
     hgb = HistGradientBoostingClassifier(
         max_iter=300, learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=20, l2_regularization=1.0,
-        monotonic_cst=[F.MONOTONIC.get(f, 0) for f in F.FEATURES], early_stopping=True,
+        monotonic_cst=[F.MONOTONIC.get(f, 0) for f in feature_names], early_stopping=True,
         validation_fraction=0.15, random_state=0)
     return CalibratedClassifierCV(hgb, method="isotonic", cv=5)
 
@@ -80,14 +83,23 @@ def operating_table(y, p, cuts):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--rain-soil", action="store_true", help="train the three-hour-compatible model")
+    rain_soil = parser.parse_args().rain_soil
+    feature_names = F.RAIN_SOIL_FEATURES if rain_soil else F.FEATURES
+    active_groups = {name: [col for col in cols if col in feature_names] for name, cols in GROUPS.items()}
+    active_groups = {name: cols for name, cols in active_groups.items() if cols}
+    model_path = RAIN_SOIL_MODEL_PATH if rain_soil else MODEL_PATH
+    card_path = RAIN_SOIL_CARD_PATH if rain_soil else CARD_PATH
     X, y, m = load()
+    X = X[:, [F.FEATURES.index(f) for f in feature_names]]
     print(f"{len(y)} samples, {int(y.sum())} positives")
     train, test = m["year"] <= TRAIN_LAST_YEAR, m["year"] > TRAIN_LAST_YEAR
     yrs = m["year"]
     train_label = f"{yrs[train].min()}-{yrs[train].max()}"
     test_label = f"{yrs[test].min()}-{yrs[test].max()}"
 
-    model = make_model().fit(X[train], y[train])
+    model = make_model(feature_names).fit(X[train], y[train])
     p = model.predict_proba(X[test])[:, 1]
     r = np.nan_to_num(m["ratio"][test], nan=0.0)
     yt, kind = y[test], m["kind"][test]
@@ -110,26 +122,27 @@ def main():
     for tr, te in GroupKFold(n_splits=5).split(X, y, groups=m["state"]):
         if len(set(y[te])) < 2:
             continue
-        mm = make_model().fit(X[tr], y[tr])
+        mm = make_model(feature_names).fit(X[tr], y[tr])
         aucs.append(float(roc_auc_score(y[te], mm.predict_proba(X[te])[:, 1])))
     report["state_split_cv"] = {"folds": len(aucs), "roc_auc_mean": round(float(np.mean(aucs)), 3),
                                 "roc_auc_min": round(float(np.min(aucs)), 3), "roc_auc_max": round(float(np.max(aucs)), 3)}
 
     imp = permutation_importance(model, X[test], yt, scoring="roc_auc", n_repeats=10, random_state=0)
     report["feature_importance_test_auc_drop"] = dict(sorted(
-        {f: round(float(v), 4) for f, v in zip(F.FEATURES, imp.importances_mean)}.items(), key=lambda kv: -kv[1]))
+        {f: round(float(v), 4) for f, v in zip(feature_names, imp.importances_mean)}.items(), key=lambda kv: -kv[1]))
 
-    final = make_model().fit(X, y)
+    final = make_model(feature_names).fit(X, y)
     neg = X[y == 0]
     reference = {f: (None if np.isnan(np.nanmedian(neg[:, i])) else round(float(np.nanmedian(neg[:, i])), 4))
-                 for i, f in enumerate(F.FEATURES)}
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(final, MODEL_PATH)
+                 for i, f in enumerate(feature_names)}
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(final, model_path)
     card = {
-        "name": "SANKET landslide confidence v1",
+        "name": "SANKET rain and soil confidence" if rain_soil else "SANKET landslide confidence v1",
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "algorithm": "Gradient-boosted trees (scikit-learn HistGradientBoosting, monotone in rain and soil moisture), isotonic calibration",
-        "features": F.FEATURES, "feature_labels": F.LABELS, "groups": GROUPS,
+        "features": feature_names, "feature_labels": {f: F.LABELS[f] for f in feature_names},
+        "groups": active_groups,
         "reference_non_event": reference,
         "training_data": {
             "positives_description": ("India, rainfall-triggered, dated: NASA Global Landslide Catalog 2007-2016 and NASA COOLR reports "
@@ -139,7 +152,8 @@ def main():
             "years": f"{yrs.min()}-{yrs.max()}",
             "negatives": "same place on 3 other days without a catalogued landslide (25 km / 7 days), and 1 random point in India on the same day",
             "weather": "ERA5 hourly via Open-Meteo archive (live inference uses ECMWF IFS, same soil layers)",
-            "terrain": "Copernicus GLO-90 elevation (Open-Meteo) at the point and ~550 m north and east",
+            "terrain": ("Terrain features omitted from this model." if rain_soil else
+                        "Copernicus GLO-90 elevation (Open-Meteo) at the point and ~550 m north and east"),
             "samples": int(len(y)), "positives": int(y.sum()),
         },
         "meaning_of_confidence": (
@@ -154,9 +168,15 @@ def main():
         ],
         "evaluation": report,
     }
-    CARD_PATH.write_text(json.dumps(card, indent=1), encoding="utf-8")
+    if rain_soil:
+        card["limitations"].append(
+            "Uses aligned 3–240 hour rainfall totals and soil moisture. Trained and evaluated on "
+            "ERA5-derived features, with live scores using ECMWF IFS. Available inputs do not "
+            "include hourly rainfall peaks, wind, temperature or local terrain."
+        )
+    card_path.write_text(json.dumps(card, indent=1), encoding="utf-8")
     print(json.dumps(report, indent=1))
-    print(f"saved {MODEL_PATH} and {CARD_PATH}")
+    print(f"saved {model_path} and {card_path}")
 
 
 if __name__ == "__main__":

@@ -119,6 +119,11 @@ export default function DataModel({ theme, onToggleTheme, language }) {
               ))}</tbody>
             </table></div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>{card.meaning_of_confidence}</div>
+            {card.rain_soil && <details style={{ marginTop: 8 }}>
+              <summary>Rain and soil fallback model</summary>
+              <p>Uses 3–240 hour rainfall totals and soil moisture. Held-out ROC-AUC was {card.rain_soil.evaluation?.time_split?.model?.roc_auc} on {card.rain_soil.evaluation?.time_split?.test} cases.</p>
+              <p>{card.rain_soil.meaning_of_confidence}</p>
+            </details>}
             <ul style={{ fontSize: 11, color: 'var(--text-dim)', margin: '6px 0 0 16px' }}>{(card.limitations || []).map((l) => <li key={l}>{l}</li>)}</ul>
           </div>
         )}

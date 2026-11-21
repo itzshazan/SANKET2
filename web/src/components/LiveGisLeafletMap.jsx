@@ -33,14 +33,14 @@ function plainReason({ flat, level, ratio, g, rain }) {
   return `${g?.rain_mm ?? '?'} mm of rain in ${g?.hours ?? '?'} h: ${ratio.toFixed(1)}× the landslide threshold.`;
 }
 
-function summaryHtml({ title, level, confidence, reason, stale }) {
+function summaryHtml({ title, level, confidence, confidenceVariant, reason, stale }) {
   const color = HAZARD_COLOR[level] || HAZARD_COLOR.unknown;
   return `
       <div style="font-weight:800;font-size:13px;margin-bottom:6px">${title}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <span style="background:${color};color:#fff;font-weight:800;padding:3px 9px;border-radius:4px;font-size:11.5px">${LEVEL_LABEL[level] || 'NO DATA'}</span>
         <span style="text-align:right"><span style="font-size:18px;font-weight:900">${typeof confidence === 'number' ? `${Math.round(confidence * 100)}%` : '—'}</span>
-          <span style="display:block;font-size:9.5px;color:#777;margin-top:-2px">landslide confidence</span></span>
+          <span style="display:block;font-size:9.5px;color:#777;margin-top:-2px">${confidenceVariant === 'rain_soil' ? 'rain and soil confidence' : 'landslide confidence'}</span></span>
       </div>
       <div style="margin-top:7px;font-size:12px">${reason}</div>
       ${stale ? '<div style="margin-top:3px;font-size:10.5px;color:#9A6A08">Using the last real weather reading (live feed down).</div>' : ''}`;
@@ -57,7 +57,7 @@ function pointPopup(lat, lon, res) {
     <div style="font-family: system-ui; min-width: 230px; max-width: 260px; font-size: 11px; line-height: 1.5">
       ${summaryHtml({
         title: `${esc(res.district || 'Selected point')}${res.state ? `, ${esc(res.state)}` : ''}`,
-        level: ev.level || 'unknown', confidence: conf, stale: w.status === 'stale',
+        level: ev.level || 'unknown', confidence: conf, confidenceVariant: res.confidence?.variant, stale: w.status === 'stale',
         reason: plainReason({ flat, level: ev.level, ratio: ev.ratio, g: ev.governing_window, rain: w.rain_mm }),
       })}
       <details style="margin-top:7px;color:#555">
@@ -161,7 +161,7 @@ export default function LiveGisLeafletMap({
       marker.bindPopup(`
         <div style="font-family:system-ui;min-width:230px;max-width:260px;font-size:11px;line-height:1.5">
           ${summaryHtml({
-            title: `${esc(d.name)}, ${esc(d.state)}`, level: lv, confidence: d.confidence, stale: d.weather_status === 'stale',
+            title: `${esc(d.name)}, ${esc(d.state)}`, level: lv, confidence: d.confidence, confidenceVariant: d.confidence_variant, stale: d.weather_status === 'stale',
             reason: plainReason({ flat: false, level: lv, ratio: d.ratio, g: d.governing_window, rain: w.rain_mm }),
           })}
           <button id="open-${esc(d.id)}" style="margin-top:8px;width:100%;padding:5px;background:#028C74;color:#fff;border:0;border-radius:4px;font-weight:700;cursor:pointer">Open in Live Monitor →</button>

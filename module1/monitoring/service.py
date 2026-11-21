@@ -170,11 +170,8 @@ def assess_point(lat: float, lon: float, *, state: Optional[str] = None, key: Op
         state, district = geo.locate(lat, lon)
     region_id = tm.region_for_state(state)
     w = weather or weather_for([(lat, lon)])[0]
-    confidence = {"status": "unavailable", "reason": "no weather data"}
-    if w.get("interval_hours", 1) != 1:
-        confidence["reason"] = "The confidence model requires hourly inputs."
-    elif w.get("status") != "unavailable":
-        confidence = ml.confidence(w["hourly"], lat, lon)
+    confidence = (ml.confidence(w["hourly"], lat, lon, interval_hours=w.get("interval_hours", 1))
+                  if w.get("status") != "unavailable" else {"status": "unavailable", "reason": "no weather data"})
     out = {
         "latitude": lat, "longitude": lon, "state": state, "district": district,
         "evaluation": _evaluate(w, region_id, key),
@@ -240,6 +237,7 @@ def assess_district(district_id: str, detail: bool = False,
             "slope_deg": t.get("slope_deg"), "elevation_m": t.get("elevation_m"),
             "weather_status": r["weather"]["status"],
             "confidence": r["confidence"].get("confidence"),
+            "confidence_variant": r["confidence"].get("variant"),
         }
         if detail:
             row.update({"terrain": r.get("terrain"), "vegetation": r.get("vegetation"), "confidence_detail": r["confidence"],
@@ -247,8 +245,8 @@ def assess_district(district_id: str, detail: bool = False,
         hotspot_rows.append(row)
 
     statuses = {r["weather"]["status"] for r in results}
-    confs = [(r["confidence"].get("confidence"), p["id"]) for p, r in zip(pts, results) if r["confidence"].get("confidence") is not None]
-    top_conf = max(confs) if confs else (None, None)
+    confs = [row for row in hotspot_rows if row["confidence"] is not None]
+    top_conf = max(confs, default={}, key=lambda row: (row["confidence_variant"] == "hourly", row["confidence"]))
     out = {
         **d,
         "level": worst["evaluation"]["level"],
@@ -260,7 +258,8 @@ def assess_district(district_id: str, detail: bool = False,
         "weather_status": "live" if statuses == {"live"} else "unavailable" if statuses == {"unavailable"} else "stale",
         "weather_issue": next((w["issue"] for w in weathers if w.get("issue") == "rate_limited"), None),
         "hotspot_source": hs["source"],
-        "confidence": top_conf[0], "confidence_hotspot": top_conf[1],
+        "confidence": top_conf.get("confidence"), "confidence_hotspot": top_conf.get("id"),
+        "confidence_variant": top_conf.get("confidence_variant"),
         "confidence_status": "live" if confs else (results[0]["confidence"].get("status") if results else "unavailable"),
         "hotspots": hotspot_rows,
         "evaluated_at": worst["evaluated_at"],

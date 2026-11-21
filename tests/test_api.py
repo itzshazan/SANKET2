@@ -109,7 +109,8 @@ def test_public_weather_archive_supplies_native_intervals_after_quota(monkeypatc
         calls.append(points)
         times = [(end - timedelta(hours=3 * (79 - i))).strftime("%Y-%m-%dT%H:%M") for i in range(80)]
         reading = {"interval_hours": 3, "source": ifs_open_data.SOURCE, "fetched_at": now.isoformat(),
-                   "hourly": {"time": times, "precipitation": [1.5] * 80, "temperature_2m": [15.0] * 80}}
+                   "hourly": {"time": times, "precipitation": [1.5] * 80, "temperature_2m": [15.0] * 80,
+                              "soil_moisture_7_to_28cm": [0.3] * 80, "soil_moisture_28_to_100cm": [0.35] * 80}}
         return [reading for _ in points]
 
     monkeypatch.setattr(openmeteo, "fetch_live", limited)
@@ -121,7 +122,8 @@ def test_public_weather_archive_supplies_native_intervals_after_quota(monkeypatc
     assert weather["rain_mm"]["1"] is None
     assert weather["rain_mm"]["24"] == 12.0
     assert len(weather["hourly_rain_72h"]) == 24
-    assert result["confidence"]["status"] == "unavailable"
+    assert result["confidence"]["variant"] == "rain_soil"
+    assert 0 <= result["confidence"]["confidence"] <= 1
     assert service.weather_for([point])[0]["status"] == "live"
     assert calls == [[point]]
 

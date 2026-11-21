@@ -46,7 +46,7 @@ def model_card():
     c = ml.card()
     if not c:
         raise HTTPException(status_code=404, detail="No trained model. Run: python -m module1.ml.train")
-    return c
+    return {**c, "rain_soil": ml.card("rain_soil")}
 
 
 @router.get("/thresholds")

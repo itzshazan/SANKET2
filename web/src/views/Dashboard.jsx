@@ -29,6 +29,7 @@ export default function Dashboard({ selection, selectDistrict, goTo }) {
 
   const rains = live.list.map((d) => d.weather?.rain_mm?.['24']).filter((v) => typeof v === 'number');
   const avgRain = rains.length ? rains.reduce((a, b) => a + b, 0) / rains.length : null;
+  const rateLimited = live.list.some((d) => d.weather_issue === 'rate_limited' || /HTTP 429/.test(d.weather?.reason || ''));
   const hotspotCount = live.list.reduce((s, d) => s + (d.hotspots || []).length, 0);
 
   function exportCSV() {
@@ -51,6 +52,9 @@ export default function Dashboard({ selection, selectDistrict, goTo }) {
 
       {live.data && (
         <>
+          {rateLimited && <div className="card" role="status" style={{ padding: '12px 16px' }}>
+            Open-Meteo’s request limit was reached. Districts without a saved reading show “No data”.
+          </div>}
           <div className="grid kpi-row">
             <KpiCard label="DANGER" value={String(counts.danger ?? 0)} tone="danger" />
             <KpiCard label="WARNING" value={String(counts.warning ?? 0)} tone="warning" />

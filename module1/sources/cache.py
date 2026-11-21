@@ -41,8 +41,14 @@ class DiskCache:
         return None
 
     def set(self, key: str, value: Any) -> None:
+        self.set_many({key: value})
+
+    def set_many(self, values: dict) -> None:
+        if not values:
+            return
         with self._lock:
-            self._data[key] = {"value": value, "saved_at": time.time()}
+            now = time.time()
+            self._data.update({key: {"value": value, "saved_at": now} for key, value in values.items()})
             tmp = self.path.with_suffix(".tmp")
             tmp.write_text(json.dumps(self._data), encoding="utf-8")
             os.replace(tmp, self.path)

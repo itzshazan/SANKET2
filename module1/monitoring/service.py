@@ -10,6 +10,7 @@ Fallback chain per input (every value carries status = live | stale | unavailabl
 No value is ever invented. If rainfall is unavailable the hazard level is "unknown".
 """
 
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -25,33 +26,48 @@ from . import geo, hotspots, inventory
 MAX_STALE_S = 48 * 3600
 SEVERITY = {"unknown": -1, "normal": 0, "watch": 1, "warning": 2, "danger": 3}
 _weather_cache = DiskCache("weather_last_good_v2")
+_weather_lock = threading.Lock()
+WEATHER_BATCH_SIZE = 20
 
 
 # ----------------------------------------------------------------------------- weather
+def _weather_fallback(hit, now: float, exc: SourceError) -> Dict[str, Any]:
+    meta = {"reason": str(exc), "issue": "rate_limited" if exc.status == 429 else "feed_unavailable"}
+    if hit and now - hit[1] <= MAX_STALE_S:
+        return {**hit[0], **meta, "status": "stale", "age_minutes": int((now - hit[1]) / 60)}
+    return {**meta, "status": "unavailable"}
+
+
 def weather_for(points: Sequence[Tuple[float, float]]) -> List[Dict[str, Any]]:
-    """Hourly weather per point: live, else last real reading, else unavailable."""
-    try:
-        for attempt in range(3):
-            try:
-                live = openmeteo.fetch_live(points)
-                break
-            except SourceError as exc:   # Open-Meteo limits simultaneous requests: back off briefly
-                if "concurrent" not in str(exc) or attempt == 2:
-                    raise
-                time.sleep(1.5 * (attempt + 1))
-        for p, w in zip(points, live):
-            _weather_cache.set(point_key(*p), w)
-        return [{**w, "status": "live", "age_minutes": 0} for w in live]
-    except SourceError as exc:
-        out = []
-        for p in points:
-            hit = _weather_cache.get(point_key(*p))
-            if hit and time.time() - hit[1] <= MAX_STALE_S:
-                out.append({**hit[0], "status": "stale", "age_minutes": int((time.time() - hit[1]) / 60),
-                            "reason": f"live request failed ({exc}); last real reading shown"})
+    """Reuse completed-hour weather across dashboard and detail calls, then fetch missing points."""
+    point_by_key = {point_key(*p): p for p in points}
+    with _weather_lock:
+        now = datetime.now(timezone.utc)
+        hour = now.strftime("%Y-%m-%dT%H:00")
+        hits = {key: _weather_cache.get(key) for key in point_by_key}
+        readings = {}
+        missing = []
+        for key, hit in hits.items():
+            if hit and hit[0]["hourly"]["time"][-1] == hour:
+                readings[key] = {**hit[0], "status": "live", "age_minutes": int((now.timestamp() - hit[1]) / 60)}
             else:
-                out.append({"status": "unavailable", "reason": str(exc)})
-        return out
+                missing.append(key)
+
+        saved = {}
+        for start in range(0, len(missing), WEATHER_BATCH_SIZE):
+            keys = missing[start:start + WEATHER_BATCH_SIZE]
+            try:
+                live = openmeteo.fetch_live([point_by_key[key] for key in keys])
+            except SourceError as exc:
+                remaining = missing[start:] if exc.status == 429 else keys
+                readings.update({key: _weather_fallback(hits[key], now.timestamp(), exc) for key in remaining})
+                if exc.status == 429:
+                    break
+            else:
+                saved.update(zip(keys, live))
+                readings.update({key: {**w, "status": "live", "age_minutes": 0} for key, w in zip(keys, live)})
+        _weather_cache.set_many(saved)
+    return [readings[point_key(*p)] for p in points]
 
 
 def _last(values: list) -> Optional[float]:
@@ -63,11 +79,12 @@ def _last(values: list) -> Optional[float]:
 
 def summarize_weather(w: Dict[str, Any]) -> Dict[str, Any]:
     if w.get("status") == "unavailable":
-        return {"status": "unavailable", "reason": w.get("reason")}
+        return {"status": "unavailable", "reason": w.get("reason"), "issue": w.get("issue")}
     h = w["hourly"]
     p = [0.0 if v is None else float(v) for v in h["precipitation"]]
     return {
         "status": w["status"], "age_minutes": w.get("age_minutes", 0), "reason": w.get("reason"),
+        "issue": w.get("issue"),
         "source": w["source"], "fetched_at": w["fetched_at"],
         "window_end_utc": h["time"][-1] + "Z",
         "rain_mm": {str(k): v for k, v in tm.window_sums(p).items()},
@@ -153,12 +170,15 @@ def registry() -> Dict[str, Dict[str, Any]]:
     return _registry
 
 
-def assess_district(district_id: str, detail: bool = False) -> Dict[str, Any]:
+def assess_district(district_id: str, detail: bool = False,
+                    weather_by_point: Optional[Dict[Tuple[float, float], Dict[str, Any]]] = None) -> Dict[str, Any]:
     d = _registry[district_id]
     hs = hotspots.load()[district_id]
     pts = hs["points"]
-    weathers = weather_for([(p["lat"], p["lon"]) for p in pts])
-    ml.prefetch_terrain([(p["lat"], p["lon"]) for p in pts])
+    locations = [(p["lat"], p["lon"]) for p in pts]
+    weathers = weather_for(locations) if weather_by_point is None else [weather_by_point[p] for p in locations]
+    if any(w["status"] != "unavailable" for w in weathers):
+        ml.prefetch_terrain(locations)
     results = []
 
     def one(i):
@@ -206,6 +226,7 @@ def assess_district(district_id: str, detail: bool = False) -> Dict[str, Any]:
         "threshold_region": worst["evaluation"].get("region"),
         "weather": {k: v for k, v in worst["weather"].items() if k != "hourly_rain_72h" or detail},
         "weather_status": "live" if statuses == {"live"} else "unavailable" if statuses == {"unavailable"} else "stale",
+        "weather_issue": next((w["issue"] for w in weathers if w.get("issue") == "rate_limited"), None),
         "hotspot_source": hs["source"],
         "confidence": top_conf[0], "confidence_hotspot": top_conf[1],
         "confidence_status": "live" if confs else (results[0]["confidence"].get("status") if results else "unavailable"),
@@ -218,16 +239,27 @@ def assess_district(district_id: str, detail: bool = False) -> Dict[str, Any]:
 
 
 _live_cache: Dict[str, Any] = {"value": None, "ts": 0.0}
+_live_lock = threading.Lock()
 LIVE_TTL_S = 600
 
 
 def all_districts_live(force: bool = False) -> Dict[str, Any]:
-    if not force and _live_cache["value"] and time.time() - _live_cache["ts"] < LIVE_TTL_S:
-        return {**_live_cache["value"], "cached": True}
+    requested_at = time.time()
+    with _live_lock:
+        cached = _live_cache["value"]
+        if cached and (_live_cache["ts"] >= requested_at or
+                       (not force and requested_at - _live_cache["ts"] < LIVE_TTL_S)):
+            return {**cached, "cached": True}
+        return _refresh_districts_live()
+
+
+def _refresh_districts_live() -> Dict[str, Any]:
+    locations = [(p["lat"], p["lon"]) for district in hotspots.load().values() for p in district["points"]]
+    weather_by_point = dict(zip(locations, weather_for(locations)))
 
     def safe(did):
         try:
-            return did, assess_district(did)
+            return did, assess_district(did, weather_by_point=weather_by_point)
         except Exception as exc:   # one bad district must not hide the others
             d = _registry[did]
             return did, {**d, "level": "unknown", "ratio": None, "weather_status": "unavailable",

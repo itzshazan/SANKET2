@@ -24,8 +24,9 @@ const LEVEL_LABEL = { normal: 'NORMAL', watch: 'WATCH', warning: 'WARNING', dang
 
 // One plain sentence: why this level.
 function plainReason({ flat, level, ratio, g, rain }) {
+  if (level === 'unknown') return 'No rainfall data right now.';
   if (flat) return 'Flat ground: no slope steep enough for a landslide.';
-  if (level === 'unknown' || typeof ratio !== 'number') return 'No rainfall data right now.';
+  if (typeof ratio !== 'number') return 'No rainfall data right now.';
   const r7 = rain?.['168'];
   if (ratio === 0 || (typeof r7 === 'number' && r7 < 1)) return 'No rain in the last 7 days.';
   if (ratio < 1) return `Light rain (${fmt(rain?.['24'], 0)} mm in 24 h), below the landslide threshold.`;

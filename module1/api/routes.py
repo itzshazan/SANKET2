@@ -12,7 +12,7 @@ from ..inference import threshold_model as tm
 from ..ingestion.osm import osm_service
 from ..ml import predict as ml
 from ..monitoring import analytics, hotspots, service
-from ..sources import sentinel2
+from ..sources import openmeteo, sentinel2
 from .auth import current_user
 from module3 import service as road_blockage
 
@@ -62,6 +62,7 @@ def data_sources():
     nasa = bool(os.getenv("NASA_EARTHDATA_TOKEN", "").strip())
     return {
         "rainfall_soil_temperature_wind": {"source": "ECMWF IFS 0.25° via Open-Meteo (hourly; same model family as the ERA5 training data)", "key_needed": False,
+                                           "using_customer_endpoint": openmeteo.forecast_uses_key(),
                                            "fallback": "last real reading up to 48 h old, flagged stale"},
         "terrain": {"source": "Copernicus DEM GLO-30 on AWS Open Data", "key_needed": False,
                     "fallback": "Open-Meteo elevation (GLO-90), elevation only"},

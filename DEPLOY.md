@@ -59,6 +59,7 @@ git add -f module1/data/raw/landslide/*.csv module1/data/raw/landslide/*.geojson
    | `SUPABASE_SERVICE_ROLE_KEY` | from `.env` (secret: server only) |
    | `COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET` | from `.env` (vegetation / NDVI) |
    | `NASA_EARTHDATA_TOKEN` | from `.env`, if you have it |
+   | `OPEN_METEO_API_KEY` | Optional Open-Meteo subscription key for the live forecast endpoint |
    | `SANKET_CORS_ORIGINS` | your Vercel address, added in step 3 |
 
 4. **Create Web Service**. When it is live, open `https://<your-service>.onrender.com/api/v1/module1/health`; it
@@ -76,6 +77,11 @@ memory. The Free instance sleeps after 15 minutes idle, so the first request can
 After deployment, check `/api/v1/module1/road-blockage/model` on Render for
 `"available": true` and `"runtime": "onnx-int8"`. Then sign in to SANKET and analyze one of the
 sample photos on Road Blockage. The compact model has its own validation results.
+
+The free Open-Meteo forecast API has a request quota. SANKET reuses readings for the latest
+completed hour and backs off after a quota response. If you already have an Open-Meteo subscription,
+set `OPEN_METEO_API_KEY` in Render to use the dedicated forecast endpoint. During an outage the site
+shows the last real readings as stale when available.
 
 **Field reports and incidents** are stored in a SQLite file. Render's disk is wiped on every deploy and restart, so
 on a plain instance they are lost. To keep them (paid instances): service → **Disks** → **Add disk**, mount path

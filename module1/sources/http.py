@@ -11,6 +11,11 @@ USER_AGENT = "SANKET-Landslide-EWS/2.0"
 class SourceError(RuntimeError):
     """A real data source could not deliver data (network, HTTP or format problem)."""
 
+    def __init__(self, message: str, *, status: Optional[int] = None, retry_after: Optional[str] = None):
+        super().__init__(message)
+        self.status = status
+        self.retry_after = retry_after
+
 
 def get_bytes(url: str, timeout: float = 20.0, headers: Optional[Dict[str, str]] = None,
               byte_range: Optional[tuple] = None) -> bytes:
@@ -26,7 +31,8 @@ def get_bytes(url: str, timeout: float = 20.0, headers: Optional[Dict[str, str]]
             detail = exc.read()[:200].decode("utf-8", "replace")
         except Exception:
             pass
-        raise SourceError(f"HTTP {exc.code} from {url.split('?')[0]} {detail}".strip()) from exc
+        raise SourceError(f"HTTP {exc.code} from {url.split('?')[0]} {detail}".strip(),
+                          status=exc.code, retry_after=exc.headers.get("Retry-After") if exc.headers else None) from exc
     except Exception as exc:  # timeout, DNS, TLS ...
         raise SourceError(f"{type(exc).__name__} contacting {url.split('?')[0]}: {exc}") from exc
 

@@ -31,6 +31,8 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
   const districtId = selection?.districtId && live.byId[selection.districtId] ? selection.districtId : (live.list[0]?.id || null);
   const summary = districtId ? live.byId[districtId] : null;
 
+  const summaryWindow = summary?.weather?.window_end_utc;
+  const summaryStatus = summary?.weather_status;
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -45,10 +47,11 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
       if (res) setDetail(res); else setFailed(true);
     });
     return () => { alive = false; };
-  }, [districtId]);
+  }, [districtId, summaryWindow, summaryStatus]);
 
   const d = detail || summary;
   const w = d?.weather || {};
+  const rateLimited = d?.weather_issue === 'rate_limited' || /HTTP 429/.test(w.reason || '');
   const ev = detail?.evaluation;
   const hourly = useMemo(() => (detail?.weather?.hourly_rain_72h || []).map((h) => ({
     t: new Date(h.time).toLocaleString('en-IN', { day: '2-digit', hour: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }),
@@ -84,6 +87,10 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
           rain up to {new Date(w.window_end_utc).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} IST
         </span>}
       </div>
+
+      {rateLimited && <div className="card" role="status" style={{ padding: '12px 16px' }}>
+        Open-Meteo’s request limit was reached. The last available readings are marked stale.
+      </div>}
 
       {/* Map of this district's hotspots */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

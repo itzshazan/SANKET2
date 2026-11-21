@@ -14,7 +14,7 @@ Run:  python -m module1.ml.train
 import argparse
 import csv
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import joblib
@@ -25,6 +25,7 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 from sklearn.model_selection import GroupKFold
 
+from . import context as C
 from . import features as F
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -34,19 +35,48 @@ MODEL_PATH = ROOT / "models" / "landslide_confidence_v1.joblib"
 CARD_PATH = ROOT / "models" / "landslide_confidence_v1.card.json"
 RAIN_SOIL_MODEL_PATH = ROOT / "models" / "landslide_confidence_rain_soil.joblib"
 RAIN_SOIL_CARD_PATH = ROOT / "models" / "landslide_confidence_rain_soil.card.json"
+CONTEXT_MODEL_PATH = ROOT / "models" / "landslide_confidence_context.joblib"
+CONTEXT_CARD_PATH = ROOT / "models" / "landslide_confidence_context.card.json"
+VARIANTS = {
+    "hourly": (F.FEATURES, MODEL_PATH, CARD_PATH, "SANKET landslide confidence v1"),
+    "rain_soil": (F.RAIN_SOIL_FEATURES, RAIN_SOIL_MODEL_PATH, RAIN_SOIL_CARD_PATH, "SANKET rain and soil confidence"),
+    "context": (F.CONTEXT_FEATURES, CONTEXT_MODEL_PATH, CONTEXT_CARD_PATH, "SANKET all-factor confidence"),
+}
 GROUPS = {
     "Rainfall": [f for f in F.FEATURES if f.startswith("rain_") or f == "max_hourly_rain_24h"],
     "Soil moisture": ["soil_7_28", "soil_28_100", "soil_7_28_change_72h"],
     "Terrain": ["elevation_m", "relief_550m_m", "gradient_550m_deg"],
     "Temperature & wind": ["temp_mean_24h", "wind_max_24h"],
+    "Vegetation baseline": ["vegetation_baseline_ndvi"],
+    "Nearby past landslides": ["prior_landslides_10km"],
 }
 
 
-def load():
+def _merge_context(rows):
+    def key(row):
+        return row["lat"], row["lon"], row["date"]
+
+    with C.WEATHER_TRAINING_PATH.open(encoding="utf-8", newline="") as fh:
+        weather = {key(r): r for r in csv.DictReader(fh)}
+    complete = []
+    for row in rows:
+        lat, lon = float(row["lat"]), float(row["lon"])
+        ndvi = C.vegetation_at(lat, lon)
+        count = C.nearby_landslides(lat, lon, date.fromisoformat(row["date"]))
+        if key(row) in weather and ndvi is not None and count is not None:
+            complete.append({**row, **weather[key(row)], "vegetation_baseline_ndvi": ndvi,
+                             "prior_landslides_10km": count})
+    print(f"All-factor data coverage: {len(complete)} of {len(rows)} cases")
+    return complete
+
+
+def load(feature_names=F.FEATURES):
     with open(SAMPLES, encoding="utf-8", newline="") as fh:
         rows = list(csv.DictReader(fh))
+    if feature_names == F.CONTEXT_FEATURES:
+        rows = _merge_context(rows)
     num = lambda v: float(v) if v not in ("", None) else np.nan
-    X = np.array([[num(r[f]) for f in F.FEATURES] for r in rows])
+    X = np.array([[num(r[f]) for f in feature_names] for r in rows])
     y = np.array([int(r["label"]) for r in rows])
     meta = {k: np.array([r.get(k, "") for r in rows]) for k in ("kind", "state", "group", "date", "source")}
     meta["year"] = np.array([int(r["year"]) for r in rows])
@@ -84,15 +114,14 @@ def operating_table(y, p, cuts):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rain-soil", action="store_true", help="train the three-hour-compatible model")
-    rain_soil = parser.parse_args().rain_soil
-    feature_names = F.RAIN_SOIL_FEATURES if rain_soil else F.FEATURES
+    models = parser.add_mutually_exclusive_group()
+    models.add_argument("--rain-soil", dest="variant", action="store_const", const="rain_soil")
+    models.add_argument("--context", dest="variant", action="store_const", const="context")
+    variant = parser.parse_args().variant or "hourly"
+    feature_names, model_path, card_path, model_name = VARIANTS[variant]
     active_groups = {name: [col for col in cols if col in feature_names] for name, cols in GROUPS.items()}
     active_groups = {name: cols for name, cols in active_groups.items() if cols}
-    model_path = RAIN_SOIL_MODEL_PATH if rain_soil else MODEL_PATH
-    card_path = RAIN_SOIL_CARD_PATH if rain_soil else CARD_PATH
-    X, y, m = load()
-    X = X[:, [F.FEATURES.index(f) for f in feature_names]]
+    X, y, m = load(feature_names)
     print(f"{len(y)} samples, {int(y.sum())} positives")
     train, test = m["year"] <= TRAIN_LAST_YEAR, m["year"] > TRAIN_LAST_YEAR
     yrs = m["year"]
@@ -117,6 +146,11 @@ def main():
         }
     }
 
+    if variant == "context":
+        rain_soil_X = X[:, :len(F.RAIN_SOIL_FEATURES)]
+        baseline = make_model(F.RAIN_SOIL_FEATURES).fit(rain_soil_X[train], y[train])
+        report["time_split"]["matched_rain_soil_baseline"] = scores(yt, baseline.predict_proba(rain_soil_X[test])[:, 1])
+
     # whole states held out
     aucs = []
     for tr, te in GroupKFold(n_splits=5).split(X, y, groups=m["state"]):
@@ -138,7 +172,7 @@ def main():
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(final, model_path)
     card = {
-        "name": "SANKET rain and soil confidence" if rain_soil else "SANKET landslide confidence v1",
+        "name": model_name,
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "algorithm": "Gradient-boosted trees (scikit-learn HistGradientBoosting, monotone in rain and soil moisture), isotonic calibration",
         "features": feature_names, "feature_labels": {f: F.LABELS[f] for f in feature_names},
@@ -152,7 +186,7 @@ def main():
             "years": f"{yrs.min()}-{yrs.max()}",
             "negatives": "same place on 3 other days without a catalogued landslide (25 km / 7 days), and 1 random point in India on the same day",
             "weather": "ERA5 hourly via Open-Meteo archive (live inference uses ECMWF IFS, same soil layers)",
-            "terrain": ("Terrain features omitted from this model." if rain_soil else
+            "terrain": ("Terrain features omitted from this model." if variant == "rain_soil" else
                         "Copernicus GLO-90 elevation (Open-Meteo) at the point and ~550 m north and east"),
             "samples": int(len(y)), "positives": int(y.sum()),
         },
@@ -168,12 +202,31 @@ def main():
         ],
         "evaluation": report,
     }
-    if rain_soil:
+    if variant == "rain_soil":
         card["limitations"].append(
             "Uses aligned 3–240 hour rainfall totals and soil moisture. Trained and evaluated on "
             "ERA5-derived features, with live scores using ECMWF IFS. Available inputs do not "
             "include hourly rainfall peaks, wind, temperature or local terrain."
         )
+    if variant == "context":
+        card["training_data"].update({
+            "weather": ("ERA5 via Open-Meteo through the day before each dated case. Both live feeds "
+                        "use the same 3–240 hour rainfall windows and 3-hour temperature and wind sampling."),
+            "terrain": ("Copernicus elevation, relief and gradient over ~550 m. Training uses GLO-90. "
+                        "Live uses bundled GLO-90 hotspot stencils or the equivalent GLO-30 stencil."),
+            "vegetation": (f"{C.NDVI_SOURCE}. Mean of available quarterly samples in 2004–2006, estimated "
+                           "from the official NDVI color bins, at about 2 km resolution."),
+            "vegetation_url": "https://gibs.earthdata.nasa.gov/layer-metadata/v1.0/MODIS_Terra_L3_NDVI_Monthly.json",
+            "landslide_history": (f"{C.HISTORY_SOURCE}. Dated events within 10 km, at least 30 days before "
+                                   "the scored date. Zero means no matching catalogue record."),
+            "landslide_history_url": "https://gis.earthdata.nasa.gov/portal/rest/services/Landslides/COOLR_Reports_Points/MapServer/0",
+        })
+        card["limitations"].extend([
+            "Vegetation is a fixed pre-training baseline. It cannot capture recent changes such as deforestation.",
+            "Nearby landslide counts depend on catalogue coverage, record dates, and location accuracy.",
+            "Weather is cut off before the case date because the event hour is generally unknown. "
+            "This evaluation measures discrimination between catalogue cases and sample controls.",
+        ])
     card_path.write_text(json.dumps(card, indent=1), encoding="utf-8")
     print(json.dumps(report, indent=1))
     print(f"saved {model_path} and {card_path}")

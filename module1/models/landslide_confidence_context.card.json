@@ -1,0 +1,273 @@
+{
+ "name": "SANKET all-factor confidence",
+ "trained_at": "2026-11-21T18:46:50.670223+00:00",
+ "algorithm": "Gradient-boosted trees (scikit-learn HistGradientBoosting, monotone in rain and soil moisture), isotonic calibration",
+ "features": [
+  "rain_3h",
+  "rain_6h",
+  "rain_12h",
+  "rain_24h",
+  "rain_48h",
+  "rain_72h",
+  "rain_120h",
+  "rain_168h",
+  "rain_240h",
+  "soil_7_28",
+  "soil_28_100",
+  "soil_7_28_change_72h",
+  "temp_mean_24h",
+  "wind_max_24h",
+  "elevation_m",
+  "relief_550m_m",
+  "gradient_550m_deg",
+  "vegetation_baseline_ndvi",
+  "prior_landslides_10km"
+ ],
+ "feature_labels": {
+  "rain_3h": "Rain, last 3 h",
+  "rain_6h": "Rain, last 6 h",
+  "rain_12h": "Rain, last 12 h",
+  "rain_24h": "Rain, last 24 h",
+  "rain_48h": "Rain, last 48 h",
+  "rain_72h": "Rain, last 72 h",
+  "rain_120h": "Rain, last 120 h",
+  "rain_168h": "Rain, last 168 h",
+  "rain_240h": "Rain, last 240 h",
+  "soil_7_28": "Soil moisture 7-28 cm",
+  "soil_28_100": "Soil moisture 28-100 cm",
+  "soil_7_28_change_72h": "Soil wetting, last 72 h",
+  "temp_mean_24h": "Temperature (24 h mean)",
+  "wind_max_24h": "Max wind (24 h)",
+  "elevation_m": "Elevation",
+  "relief_550m_m": "Relief over ~550 m",
+  "gradient_550m_deg": "Hillside gradient (~550 m)",
+  "vegetation_baseline_ndvi": "MODIS vegetation baseline (NDVI)",
+  "prior_landslides_10km": "Earlier NASA landslide records within 10 km"
+ },
+ "groups": {
+  "Rainfall": [
+   "rain_3h",
+   "rain_6h",
+   "rain_12h",
+   "rain_24h",
+   "rain_48h",
+   "rain_72h",
+   "rain_120h",
+   "rain_168h",
+   "rain_240h"
+  ],
+  "Soil moisture": [
+   "soil_7_28",
+   "soil_28_100",
+   "soil_7_28_change_72h"
+  ],
+  "Terrain": [
+   "elevation_m",
+   "relief_550m_m",
+   "gradient_550m_deg"
+  ],
+  "Temperature & wind": [
+   "temp_mean_24h",
+   "wind_max_24h"
+  ],
+  "Vegetation baseline": [
+   "vegetation_baseline_ndvi"
+  ],
+  "Nearby past landslides": [
+   "prior_landslides_10km"
+  ]
+ },
+ "reference_non_event": {
+  "rain_3h": 0.0,
+  "rain_6h": 0.0,
+  "rain_12h": 0.7,
+  "rain_24h": 1.4,
+  "rain_48h": 3.7,
+  "rain_72h": 6.5,
+  "rain_120h": 13.2,
+  "rain_168h": 20.7,
+  "rain_240h": 33.0,
+  "soil_7_28": 0.366,
+  "soil_28_100": 0.371,
+  "soil_7_28_change_72h": -0.002,
+  "temp_mean_24h": 24.08,
+  "wind_max_24h": 8.4,
+  "elevation_m": 639.0,
+  "relief_550m_m": 74.0,
+  "gradient_550m_deg": 8.13,
+  "vegetation_baseline_ndvi": 0.59,
+  "prior_landslides_10km": 0.0
+ },
+ "training_data": {
+  "positives_description": "India, rainfall-triggered, dated: NASA Global Landslide Catalog 2007-2016 and NASA COOLR reports (location accuracy <= 5 km), Kerala 2018 monsoon inventory (Univ. Twente / GSI, DANS, CC-BY-4.0) and NASA COOLR Himachal July 2023 inventory, thinned to one point per ~5 km cell",
+  "positives_by_source": {
+   "coolr_event": 28,
+   "coolr_report": 241,
+   "glc_2016": 529,
+   "kerala_2018": 150
+  },
+  "years": "2007-2024",
+  "negatives": "same place on 3 other days without a catalogued landslide (25 km / 7 days), and 1 random point in India on the same day",
+  "weather": "ERA5 via Open-Meteo through the day before each dated case. Both live feeds use the same 3\u2013240 hour rainfall windows and 3-hour temperature and wind sampling.",
+  "terrain": "Copernicus elevation, relief and gradient over ~550 m. Training uses GLO-90. Live uses bundled GLO-90 hotspot stencils or the equivalent GLO-30 stencil.",
+  "samples": 4738,
+  "positives": 948,
+  "vegetation": "NASA Terra MODIS via GIBS (2004\u20132006 vegetation baseline). Mean of available quarterly samples in 2004\u20132006, estimated from the official NDVI color bins, at about 2 km resolution.",
+  "vegetation_url": "https://gibs.earthdata.nasa.gov/layer-metadata/v1.0/MODIS_Terra_L3_NDVI_Monthly.json",
+  "landslide_history": "NASA Global Landslide Catalog and COOLR reports. Dated events within 10 km, at least 30 days before the scored date. Zero means no matching catalogue record.",
+  "landslide_history_url": "https://gis.earthdata.nasa.gov/portal/rest/services/Landslides/COOLR_Reports_Points/MapServer/0"
+ },
+ "meaning_of_confidence": "Calibrated probability that a landslide is recorded within ~5 km on that day, for cases mixed like the training set (1 landslide day per 4 non-landslide days). Real landslide days are far rarer, so read it as a relative alarm level and use the validated hit / false-alarm table.",
+ "limitations": [
+  "The catalogue is news-based: remote landslides are under-reported, so some negatives are really landslide days.",
+  "ERA5 (~25 km) underestimates local cloudbursts; some events had little ERA5 rain.",
+  "Locations are accurate to ~1-5 km, so terrain is described at ~0.5 km scale, not the exact slope.",
+  "Events after 2018 are sparse in public catalogues; Kerala 2018 events are dated to the 16 Aug peak (exact day unknown).",
+  "Vegetation is a fixed pre-training baseline. It cannot capture recent changes such as deforestation.",
+  "Nearby landslide counts depend on catalogue coverage, record dates, and location accuracy.",
+  "Weather is cut off before the case date because the event hour is generally unknown. This evaluation measures discrimination between catalogue cases and sample controls."
+ ],
+ "evaluation": {
+  "time_split": {
+   "train": "2007-2016",
+   "test": "2017-2024",
+   "model": {
+    "n": 1374,
+    "positives": 398,
+    "roc_auc": 0.88,
+    "pr_auc": 0.753,
+    "brier": 0.1292
+   },
+   "threshold_rule_baseline": {
+    "n": 1374,
+    "positives": 398,
+    "roc_auc": 0.848,
+    "pr_auc": 0.746
+   },
+   "hard_when_same_place": {
+    "model": {
+     "n": 977,
+     "positives": 398,
+     "roc_auc": 0.883,
+     "pr_auc": 0.838,
+     "brier": 0.1665
+    },
+    "threshold_rule": {
+     "n": 977,
+     "positives": 398,
+     "roc_auc": 0.872,
+     "pr_auc": 0.847
+    }
+   },
+   "where_same_day_elsewhere": {
+    "model": {
+     "n": 795,
+     "positives": 398,
+     "roc_auc": 0.876,
+     "pr_auc": 0.863,
+     "brier": 0.1971
+    },
+    "threshold_rule": {
+     "n": 795,
+     "positives": 398,
+     "roc_auc": 0.813,
+     "pr_auc": 0.831
+    }
+   },
+   "model_operating_points": [
+    {
+     "at": 0.2,
+     "hit_rate": 0.829,
+     "false_alarm_rate": 0.205,
+     "precision": 0.623,
+     "alarms": 530
+    },
+    {
+     "at": 0.35,
+     "hit_rate": 0.678,
+     "false_alarm_rate": 0.082,
+     "precision": 0.771,
+     "alarms": 350
+    },
+    {
+     "at": 0.5,
+     "hit_rate": 0.465,
+     "false_alarm_rate": 0.04,
+     "precision": 0.826,
+     "alarms": 224
+    },
+    {
+     "at": 0.65,
+     "hit_rate": 0.289,
+     "false_alarm_rate": 0.014,
+     "precision": 0.891,
+     "alarms": 129
+    },
+    {
+     "at": 0.8,
+     "hit_rate": 0.01,
+     "false_alarm_rate": 0.001,
+     "precision": 0.8,
+     "alarms": 5
+    }
+   ],
+   "threshold_rule_operating_points": [
+    {
+     "at": 1.0,
+     "hit_rate": 0.892,
+     "false_alarm_rate": 0.462,
+     "precision": 0.44,
+     "alarms": 806
+    },
+    {
+     "at": 2.0,
+     "hit_rate": 0.771,
+     "false_alarm_rate": 0.224,
+     "precision": 0.584,
+     "alarms": 526
+    },
+    {
+     "at": 4.0,
+     "hit_rate": 0.528,
+     "false_alarm_rate": 0.064,
+     "precision": 0.772,
+     "alarms": 272
+    }
+   ],
+   "matched_rain_soil_baseline": {
+    "n": 1374,
+    "positives": 398,
+    "roc_auc": 0.862,
+    "pr_auc": 0.776,
+    "brier": 0.1246
+   }
+  },
+  "state_split_cv": {
+   "folds": 5,
+   "roc_auc_mean": 0.86,
+   "roc_auc_min": 0.798,
+   "roc_auc_max": 0.949
+  },
+  "feature_importance_test_auc_drop": {
+   "rain_6h": 0.0143,
+   "gradient_550m_deg": 0.0117,
+   "rain_24h": 0.0088,
+   "wind_max_24h": 0.0079,
+   "vegetation_baseline_ndvi": 0.0078,
+   "rain_3h": 0.005,
+   "rain_48h": 0.0045,
+   "elevation_m": 0.0041,
+   "relief_550m_m": 0.0035,
+   "rain_168h": 0.0029,
+   "prior_landslides_10km": 0.0022,
+   "temp_mean_24h": 0.0017,
+   "rain_72h": 0.0011,
+   "rain_120h": 0.0008,
+   "rain_240h": 0.0005,
+   "soil_7_28_change_72h": 0.0004,
+   "rain_12h": 0.0001,
+   "soil_28_100": -0.001,
+   "soil_7_28": -0.0017
+  }
+ }
+}

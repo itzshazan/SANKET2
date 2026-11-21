@@ -2,13 +2,15 @@
 
 import json
 import threading
+from datetime import date
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from ..sources import openmeteo
+from ..sources import openmeteo, terrain
 from ..sources.cache import DiskCache, point_key
 from ..sources.http import SourceError
+from . import context as C
 from . import features as F
-from .train import CARD_PATH, MODEL_PATH, RAIN_SOIL_CARD_PATH, RAIN_SOIL_MODEL_PATH
+from .train import VARIANTS
 
 _terrain = DiskCache("ml_terrain_v2")      # elevation stencil per point, never changes
 _lock = threading.Lock()
@@ -16,8 +18,7 @@ _state: Dict[str, Dict[str, Any]] = {}
 
 
 def _load(variant="hourly"):
-    model_path, card_path = ((RAIN_SOIL_MODEL_PATH, RAIN_SOIL_CARD_PATH) if variant == "rain_soil"
-                             else (MODEL_PATH, CARD_PATH))
+    _, model_path, card_path, _ = VARIANTS[variant]
     if not model_path.exists():
         return None, None
     mtime = model_path.stat().st_mtime
@@ -31,7 +32,7 @@ def _load(variant="hourly"):
 
 
 def available() -> bool:
-    return _load()[0] is not None
+    return any(_load(variant)[0] is not None for variant in ("context", "hourly", "rain_soil"))
 
 
 def card(variant="hourly") -> Optional[Dict[str, Any]]:
@@ -40,7 +41,8 @@ def card(variant="hourly") -> Optional[Dict[str, Any]]:
 
 def prefetch_terrain(points: Sequence[Tuple[float, float]]) -> None:
     """One elevation request for several points' stencils (cached forever)."""
-    todo = [p for p in points if not _terrain.get(point_key(*p))]
+    seeded = C.hotspot_terrain()
+    todo = [p for p in points if point_key(*p) not in seeded and not _terrain.get(point_key(*p))]
     k = len(F.stencil_points(0.0, 0.0))
     per_req = (100 // k) * k
     coords = [q for p in todo for q in F.stencil_points(*p)]
@@ -54,6 +56,9 @@ def prefetch_terrain(points: Sequence[Tuple[float, float]]) -> None:
 
 
 def _terrain_for(lat: float, lon: float) -> Optional[List[float]]:
+    seeded = C.hotspot_terrain().get(point_key(lat, lon))
+    if seeded is not None:
+        return seeded
     hit = _terrain.get(point_key(lat, lon))
     if hit:
         return hit[0]
@@ -63,13 +68,37 @@ def _terrain_for(lat: float, lon: float) -> Optional[List[float]]:
 
 
 def confidence(weather: Dict[str, list], lat: float, lon: float, *, interval_hours: int = 1) -> Dict[str, Any]:
+    model, crd = _load("context")
+    missing = []
+    if model is not None:
+        features = F.context_weather_features(weather, interval_hours)
+        times = weather.get("time") or []
+        ndvi = C.vegetation_at(lat, lon)
+        previous = C.nearby_landslides(lat, lon, date.fromisoformat(times[-1][:10])) if times else None
+        if features is None:
+            missing.append("complete weather series")
+        if ndvi is None:
+            missing.append("vegetation baseline")
+        if previous is None:
+            missing.append("dated landslide history")
+        if not missing:
+            elev = C.hotspot_terrain().get(point_key(lat, lon)) or terrain.copernicus_stencil(lat, lon)
+            if elev is None:
+                elev = _terrain_for(lat, lon)
+            if elev is not None:
+                full = {**features, **F.terrain_features(elev, lat), "vegetation_baseline_ndvi": ndvi,
+                        "prior_landslides_10km": previous}
+                return _explain(model, crd, full, "context", F.CONTEXT_FEATURES)
+            missing.append("terrain")
+
+    fallback = {"missing_inputs": missing} if missing else {}
     if interval_hours == 1:
         model, crd = _load()
         wf = F.weather_features(weather)
         if model is not None and wf is not None:
             elev = _terrain_for(lat, lon)
             if elev is not None:
-                return _explain(model, crd, {**wf, **F.terrain_features(elev, lat)}, "hourly", F.FEATURES)
+                return {**_explain(model, crd, {**wf, **F.terrain_features(elev, lat)}, "hourly", F.FEATURES), **fallback}
 
     model, crd = _load("rain_soil")
     if model is None:
@@ -77,23 +106,19 @@ def confidence(weather: Dict[str, list], lat: float, lon: float, *, interval_hou
     features = F.rain_soil_features(weather, interval_hours)
     if features is None:
         return {"status": "unavailable", "reason": "Confidence needs 10 days of rainfall and soil moisture."}
-    return _explain(model, crd, features, "rain_soil", F.RAIN_SOIL_FEATURES)
+    return {**_explain(model, crd, features, "rain_soil", F.RAIN_SOIL_FEATURES), **fallback}
 
 
 def _explain(model, crd, feat, variant, feature_names):
-    p = float(model.predict_proba([F.vector(feat, feature_names)])[0, 1])
-
-    # Model-based explanation: how much each group raises the confidence compared with the
-    # same place on a typical non-landslide day (group set to the training non-event median).
-    drivers = []
+    # Compare each group with its non-event median while holding the other inputs fixed.
     ref = (crd or {}).get("reference_non_event", {})
-    for g, cols in (crd or {}).get("groups", {}).items():
-        alt = dict(feat)
-        for c in cols:
-            if ref.get(c) is not None:
-                alt[c] = ref[c]
-        q = float(model.predict_proba([F.vector(alt, feature_names)])[0, 1])
-        drivers.append({"factor": g, "points": round((p - q) * 100, 1)})
+    groups = (crd or {}).get("groups", {})
+    rows = [F.vector(feat, feature_names)]
+    for cols in groups.values():
+        adjusted = {**feat, **{c: ref[c] for c in cols if ref.get(c) is not None}}
+        rows.append(F.vector(adjusted, feature_names))
+    p, *baseline = map(float, model.predict_proba(rows)[:, 1])
+    drivers = [{"factor": group, "points": round((p - q) * 100, 1)} for group, q in zip(groups, baseline)]
     drivers.sort(key=lambda d: -abs(d["points"]))
     ops = ((crd or {}).get("evaluation", {}).get("time_split", {}).get("model_operating_points") or [])
     return {"status": "live", "confidence": round(p, 3), "drivers": drivers, "features": feat,

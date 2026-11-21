@@ -5,7 +5,7 @@ Expected answer per photo ("blocked" / "clear") comes from the photo's own title
 the exact blocked percentage is not known, so this is a pass/fail check:
   * a blocked road passes if the model reports >= 10 % of the width blocked;
   * a clear road passes if the model reports < 10 %;
-  * "no road recognised" is counted separately (the model declines to answer).
+  * inconclusive road width is counted separately.
 
 Writes a validation report for the active runtime, which the Road Blockage tab shows.
 Run:  python -m module3.validate
@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import service
+from .corridor import MIN_BLOCKAGE_PERCENT
 
 ROOT = Path(__file__).resolve().parent
 PHOTOS = ROOT.parent / "web" / "public" / "module3-samples"
@@ -33,7 +34,7 @@ def main():
         elif r["status"] != "ok":
             outcome = "error"
         else:
-            said_blocked = pct >= 10.0
+            said_blocked = pct >= MIN_BLOCKAGE_PERCENT
             outcome = "pass" if said_blocked == (p["expected"] == "blocked") else "fail"
         rows.append({"file": p["file"], "label": p["label"], "expected": p["expected"], "outcome": outcome,
                      "blockage_percentage": pct, "causes": r.get("obstacle_display_names") or [],
@@ -52,7 +53,7 @@ def main():
         "clear_no_road": count("clear", "no_road"),
     }
     out = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "rule": "blocked if >= 10 % of the road width is blocked", "summary": summary, "photos": rows}
+           "rule": f"blocked if >= {MIN_BLOCKAGE_PERCENT:g} % of the visible road width is blocked", "summary": summary, "photos": rows}
     service.validation_path().write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(summary))
 

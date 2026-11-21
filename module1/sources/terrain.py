@@ -10,6 +10,7 @@ Methods (standard, documented so the numbers can be checked):
 """
 
 import math
+from functools import lru_cache
 import threading
 from typing import Any, Dict, Optional
 
@@ -70,6 +71,24 @@ def _d8_accumulation(z: np.ndarray, dx: float, dy: float) -> np.ndarray:
         if r >= 0:
             acc[r] += acc[k]
     return acc.reshape(rows, cols)
+
+
+@lru_cache(maxsize=256)
+def copernicus_stencil(lat: float, lon: float):
+    """GLO-30 elevation at the same stencil spacing as the confidence training data."""
+    from ..ml.features import STENCIL_DEG, stencil_points
+
+    try:
+        z, lat0, lon0, res = copernicus_dem.read_window(lat, lon, STENCIL_DEG + 0.001)
+    except SourceError:
+        return None
+    values = []
+    for y, x in stencil_points(lat, lon):
+        r, c = round((lat0 - y) / res), round((x - lon0) / res)
+        if not (0 <= r < z.shape[0] and 0 <= c < z.shape[1]) or not math.isfinite(z[r, c]):
+            return None
+        values.append(float(z[r, c]))
+    return values
 
 
 def compute_terrain(lat: float, lon: float) -> Dict[str, Any]:

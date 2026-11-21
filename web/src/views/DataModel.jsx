@@ -60,8 +60,10 @@ export default function DataModel({ theme, onToggleTheme, language }) {
           </Row>
           <Row name="2. Landslide confidence (%)">
             A model <b>trained on {card?.training_data?.positives ?? '—'} real landslide days</b> in India and the same places on other days
-            reads rainfall, soil moisture, temperature, wind and terrain. Tested on {ts.test || 'later years'} landslides it never saw.
-            Read it as a relative alarm level; the model section below shows how often each confidence level was right.
+            uses {card?.variant === 'context'
+              ? 'rainfall, soil moisture, temperature, wind, terrain, a vegetation baseline and nearby past landslide records'
+              : card?.variant === 'rain_soil' ? 'rainfall and soil moisture' : 'rainfall, soil moisture, temperature, wind and terrain'}.
+            Tested on {ts.test || 'later years'} cases held out from training. Read the percentage as a relative confidence score.
           </Row>
         </div>
         <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12, marginTop: 12 }}>
@@ -102,7 +104,12 @@ export default function DataModel({ theme, onToggleTheme, language }) {
         ) : (
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>
             <div><b>{card.name}</b> · trained {new Date(card.trained_at).toLocaleString()} · {card.algorithm}</div>
-            <div>Data: {card.training_data?.positives} landslide days vs {card.training_data?.samples - card.training_data?.positives} non-landslide cases ({card.training_data?.years}). {card.training_data?.weather}.</div>
+            <div>{card.training_data?.positives} landslide days and {card.training_data?.samples - card.training_data?.positives} comparison cases ({card.training_data?.years}). {card.training_data?.weather}</div>
+            {card.variant === 'context' && <ul style={{ paddingLeft: 18 }}>
+              <li>{card.training_data.terrain}</li>
+              <li>{card.training_data.vegetation} <a href={card.training_data.vegetation_url}>NASA vegetation data</a></li>
+              <li>{card.training_data.landslide_history} <a href={card.training_data.landslide_history_url}>NASA landslide catalogue</a></li>
+            </ul>}
             <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 12, marginTop: 8 }}>
               <thead><tr><th>Test (never seen in training)</th><th>Model ROC-AUC</th><th>Threshold rule ROC-AUC</th></tr></thead>
               <tbody>
@@ -129,7 +136,7 @@ export default function DataModel({ theme, onToggleTheme, language }) {
         )}
       </Section>
 
-      <Section title="Model evaluation graphs" sub="Training vs test, accuracy, confusion matrix, ROC, precision–recall, calibration, feature importance and more. Click a graph to enlarge it.">
+      <Section title="Original hourly model evaluation graphs" sub="Click a graph to enlarge it.">
         <ModelFigures />
       </Section>
 

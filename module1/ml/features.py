@@ -23,6 +23,10 @@ FEATURES = (
     + ["max_hourly_rain_24h", "soil_7_28", "soil_28_100", "soil_7_28_change_72h",
        "temp_mean_24h", "wind_max_24h", "elevation_m", "relief_550m_m", "gradient_550m_deg"]
 )
+CONTEXT_FEATURES = RAIN_SOIL_FEATURES + [
+    "temp_mean_24h", "wind_max_24h", "elevation_m", "relief_550m_m", "gradient_550m_deg",
+    "vegetation_baseline_ndvi", "prior_landslides_10km",
+]
 # +1: risk may only rise with the feature (physically: more rain / wetter soil never lowers risk)
 MONOTONIC = {**{f"rain_{h}h": 1 for h in RAIN_WINDOWS}, "max_hourly_rain_24h": 1,
              "soil_7_28": 1, "soil_28_100": 1, "soil_7_28_change_72h": 1}
@@ -32,6 +36,8 @@ LABELS = {
     "max_hourly_rain_24h": "Max hourly rain (24 h)", "soil_7_28": "Soil moisture 7-28 cm",
     "soil_28_100": "Soil moisture 28-100 cm", "soil_7_28_change_72h": "Soil wetting, last 72 h",
     "temp_mean_24h": "Temperature (24 h mean)", "wind_max_24h": "Max wind (24 h)",
+    "vegetation_baseline_ndvi": "MODIS vegetation baseline (NDVI)",
+    "prior_landslides_10km": "Earlier NASA landslide records within 10 km",
     "elevation_m": "Elevation", "relief_550m_m": "Relief over ~550 m", "gradient_550m_deg": "Hillside gradient (~550 m)",
 }
 
@@ -85,6 +91,22 @@ def rain_soil_features(weather: Dict[str, list], interval_hours: int) -> Optiona
         "soil_7_28": round(now, 4), "soil_28_100": round(lower, 4),
         "soil_7_28_change_72h": round(now - previous, 4),
     }
+
+
+def context_weather_features(weather: Dict[str, list], interval_hours: int) -> Optional[Dict[str, float]]:
+    """Align the inputs to 3-hour samples on both weather feeds, without interpolating missing data."""
+    if interval_hours not in (1, 3):
+        return None
+    out = rain_soil_features(weather, interval_hours)
+    if out is None:
+        return None
+    def samples(field):
+        return (weather.get(field) or [])[-1:-24 // interval_hours - 1:-(3 // interval_hours)]
+
+    t, w = samples("temperature_2m"), samples("wind_speed_10m")
+    if len(t) != 8 or len(w) != 8 or None in t or None in w:
+        return None
+    return {**out, "temp_mean_24h": round(sum(t) / len(t), 2), "wind_max_24h": round(max(w), 2)}
 
 
 def stencil_points(lat: float, lon: float) -> List[Tuple[float, float]]:

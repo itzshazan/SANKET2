@@ -186,7 +186,7 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
             return (
               <div className="card">
                 <div className="card-head">
-                  <div className="card-title">{c?.variant === 'rain_soil' ? 'Rain and soil confidence' : 'Landslide confidence'}</div>
+                  <div className="card-title">{c?.variant === 'context' ? 'All-factor confidence' : c?.variant === 'rain_soil' ? 'Rain and soil confidence' : 'Landslide confidence'}</div>
                 </div>
                 {!c || c.status !== 'live' ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c?.reason || 'Confidence unavailable.'}</div> : (
                   <div className="grid stack-sm" style={{ gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
@@ -195,13 +195,20 @@ export default function RiskMonitoring({ selection, selectDistrict }) {
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>hotspot {h.id}</div>
                     </div>
                     <div>
+                      {c.missing_inputs?.length > 0 && <p style={{ fontSize: 12 }}>Fallback score. Missing {c.missing_inputs.join(', ')}.</p>}
                       <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 6 }}>What drives it</div>
                       {c.drivers.map((dr) => (
                         <div key={dr.factor} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
-                          <span>{dr.factor}</span>
+                          <span>{dr.factor}
+                            {dr.factor === 'Vegetation baseline' && <small> · {c.features.vegetation_baseline_ndvi.toFixed(2)} NDVI</small>}
+                            {dr.factor === 'Nearby past landslides' && <small> · {c.features.prior_landslides_10km} records within 10 km</small>}
+                          </span>
                           <b style={{ color: dr.points > 0 ? 'var(--hazard-warning)' : 'var(--text-muted)' }}>{dr.points > 0 ? '+' : ''}{dr.points} pts</b>
                         </div>
                       ))}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                        Each row shows the score change compared with typical non-event values for that factor.
+                      </div>
                     </div>
                   </div>
                 )}

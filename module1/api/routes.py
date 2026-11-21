@@ -43,10 +43,14 @@ def health():
 @router.get("/model")
 def model_card():
     """Model card of the trained landslide-confidence model: data, features, honest evaluation."""
-    c = ml.card()
+    context = ml.card("context")
+    hourly = ml.card()
+    rain_soil = ml.card("rain_soil")
+    c = context or hourly or rain_soil
     if not c:
-        raise HTTPException(status_code=404, detail="No trained model. Run: python -m module1.ml.train")
-    return {**c, "rain_soil": ml.card("rain_soil")}
+        raise HTTPException(status_code=404, detail="No trained model. Run: python -m module1.ml.train --context")
+    return {**c, "variant": "context" if context else "hourly" if hourly else "rain_soil",
+            "rain_soil": rain_soil}
 
 
 @router.get("/thresholds")

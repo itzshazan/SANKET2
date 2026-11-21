@@ -246,7 +246,9 @@ def assess_district(district_id: str, detail: bool = False,
 
     statuses = {r["weather"]["status"] for r in results}
     confs = [row for row in hotspot_rows if row["confidence"] is not None]
-    top_conf = max(confs, default={}, key=lambda row: (row["confidence_variant"] == "hourly", row["confidence"]))
+    confidence_priority = {"context": 2, "hourly": 1, "rain_soil": 0}
+    top_conf = max(confs, default={}, key=lambda row: (confidence_priority.get(row["confidence_variant"], -1),
+                                                       row["confidence"]))
     out = {
         **d,
         "level": worst["evaluation"]["level"],

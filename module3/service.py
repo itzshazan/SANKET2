@@ -54,10 +54,32 @@ def model_info():
             "trained_on": "ADE20K: about 25,000 real photographs, 150 classes (road, tree, rock, earth, water, ...)",
             "weights": f"{scene_model.HF_REPO} (MIT licence)",
             "not_tuned_for": "disaster or landslide photos",
-            "measure": "blocked share of the road width at the worst point along the visible road",
+            "measure": "estimated blocked fraction of the visible road width over a short stretch",
         },
         "validation": _validation(),
     }
+
+
+def _crop_white_frame(img):
+    """Strip a rectangular white frame before it is mistaken for road or debris."""
+    import numpy as np
+
+    width, height = img.size
+    scale = min(1.0, 384 / max(width, height))
+    w, h = max(1, round(width * scale)), max(1, round(height * scale))
+    sample = img.resize((w, h))
+    white = (np.asarray(sample) >= 240).all(axis=2)
+    inner_rows = np.flatnonzero(white.mean(axis=1) < 0.98)
+    inner_cols = np.flatnonzero(white.mean(axis=0) < 0.98)
+    if not inner_rows.size or not inner_cols.size:
+        return img
+    top, bottom = int(inner_rows[0]), int(inner_rows[-1]) + 1
+    left, right = int(inner_cols[0]), int(inner_cols[-1]) + 1
+    # An actual frame surrounds all four sides. Leave bright photo content alone.
+    if min(top, h - bottom, left, w - right) < 3 or (bottom - top) * (right - left) < 0.6 * h * w:
+        return img
+    return img.crop((round(left * width / w), round(top * height / h),
+                     round(right * width / w), round(bottom * height / h)))
 
 
 def analyze(data: bytes):
@@ -85,7 +107,7 @@ def analyze(data: bytes):
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise ValueError(f"not a readable image ({type(exc).__name__})") from exc
 
-    result = scene_model.analyze(img)
+    result = scene_model.analyze(_crop_white_frame(img))
     result["image_size"] = list(original_size)
     return result
 

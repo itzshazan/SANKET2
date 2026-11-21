@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-21T16:31:55+00:00",
-  "rule": "blocked if >= 10 % of the road width is blocked",
+  "generated_at": "2026-11-21T19:19:53+00:00",
+  "rule": "blocked if >= 10 % of the visible road width is blocked",
   "summary": {
     "blocked_total": 8,
-    "blocked_detected": 5,
-    "blocked_no_road": 1,
+    "blocked_detected": 6,
+    "blocked_no_road": 2,
     "clear_total": 6,
-    "clear_correct": 3,
+    "clear_correct": 4,
     "clear_no_road": 2
   },
   "photos": [
@@ -15,7 +15,7 @@
       "label": "Atami, Japan: road closed after landslide",
       "expected": "blocked",
       "outcome": "pass",
-      "blockage_percentage": 98.4,
+      "blockage_percentage": 100.0,
       "causes": [
         "barricades",
         "soil and mud"
@@ -53,7 +53,7 @@
       "label": "Zenia Bluff Road, USA: rockfall",
       "expected": "blocked",
       "outcome": "pass",
-      "blockage_percentage": 100.0,
+      "blockage_percentage": 11.0,
       "causes": [
         "rocks and debris"
       ],
@@ -65,8 +65,8 @@
       "file": "shorwell.jpg",
       "label": "Shorwell, UK: landslip from the side",
       "expected": "blocked",
-      "outcome": "fail",
-      "blockage_percentage": 0.0,
+      "outcome": "no_road",
+      "blockage_percentage": null,
       "causes": [],
       "author": "ITookSomePhotos",
       "license": "CC BY 4.0",
@@ -76,9 +76,11 @@
       "file": "us30.jpg",
       "label": "U.S. 30, USA: landslide",
       "expected": "blocked",
-      "outcome": "fail",
-      "blockage_percentage": 0.0,
-      "causes": [],
+      "outcome": "pass",
+      "blockage_percentage": 56.2,
+      "causes": [
+        "soil and mud"
+      ],
       "author": "Oregon Department of Transportation",
       "license": "CC BY 2.0",
       "source_url": "https://commons.wikimedia.org/wiki/File:A_landslide_blocks_U.S._30_(52536644890).jpg"
@@ -88,7 +90,7 @@
       "label": "Ma-2100, Mallorca: storm landslide",
       "expected": "blocked",
       "outcome": "pass",
-      "blockage_percentage": 29.8,
+      "blockage_percentage": 25.5,
       "causes": [
         "soil and mud"
       ],
@@ -101,7 +103,7 @@
       "label": "Rizal, Philippines: earthslide, part of road open",
       "expected": "blocked",
       "outcome": "pass",
-      "blockage_percentage": 36.9,
+      "blockage_percentage": 78.7,
       "causes": [
         "soil and mud"
       ],
@@ -168,12 +170,9 @@
       "file": "clear_uk_rural.jpg",
       "label": "Rural road, Uttarakhand",
       "expected": "clear",
-      "outcome": "fail",
-      "blockage_percentage": 26.8,
-      "causes": [
-        "rocks and debris",
-        "soil and mud"
-      ],
+      "outcome": "pass",
+      "blockage_percentage": 0.0,
+      "causes": [],
       "author": "anurag agnihotri",
       "license": "CC BY 2.0",
       "source_url": "https://commons.wikimedia.org/wiki/File:Rural_road_Uttarakhand_India.jpg"

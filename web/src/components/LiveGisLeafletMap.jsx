@@ -20,6 +20,7 @@ export const REGIONAL_VIEWS = [
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const CONFIDENCE_LABEL = { context: 'all-factor confidence', rain_soil: 'rain and soil confidence' };
 const LEVEL_LABEL = { normal: 'NORMAL', watch: 'WATCH', warning: 'WARNING', danger: 'DANGER', unknown: 'NO DATA' };
 
 // One plain sentence: why this level.
@@ -40,7 +41,7 @@ function summaryHtml({ title, level, confidence, confidenceVariant, reason, stal
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <span style="background:${color};color:#fff;font-weight:800;padding:3px 9px;border-radius:4px;font-size:11.5px">${LEVEL_LABEL[level] || 'NO DATA'}</span>
         <span style="text-align:right"><span style="font-size:18px;font-weight:900">${typeof confidence === 'number' ? `${Math.round(confidence * 100)}%` : '—'}</span>
-          <span style="display:block;font-size:9.5px;color:#777;margin-top:-2px">${confidenceVariant === 'rain_soil' ? 'rain and soil confidence' : 'landslide confidence'}</span></span>
+          <span style="display:block;font-size:9.5px;color:#777;margin-top:-2px">${CONFIDENCE_LABEL[confidenceVariant] || 'landslide confidence'}</span></span>
       </div>
       <div style="margin-top:7px;font-size:12px">${reason}</div>
       ${stale ? '<div style="margin-top:3px;font-size:10.5px;color:#9A6A08">Using the last real weather reading (live feed down).</div>' : ''}`;
@@ -65,6 +66,9 @@ function pointPopup(lat, lon, res) {
         <div style="margin-top:4px">Rain 24 h / 72 h / 7 d: <b>${fmt(w.rain_mm?.['24'], 1)} / ${fmt(w.rain_mm?.['72'], 1)} / ${fmt(w.rain_mm?.['168'], 1)} mm</b></div>
         <div>Soil moisture 7-28 cm: <b>${fmt(w.soil_moisture_7_28cm, 3)} m³/m³</b></div>
         <div>Slope: <b>${fmt(t.slope_deg, 1, '°')}</b> here, <b>${fmt(t.steepest_slope_1km_deg, 1, '°')}</b> steepest within 1 km · ${fmt(t.elevation_m, 0, ' m')}</div>
+        ${res.confidence?.variant === 'context' ? `<div>Vegetation baseline: <b>${fmt(res.confidence.features.vegetation_baseline_ndvi, 2)} NDVI</b></div>
+        <div>Past landslide records within 10 km: <b>${fmt(res.confidence.features.prior_landslides_10km, 0)}</b></div>` : ''}
+        ${res.confidence?.missing_inputs?.length ? `<div>Fallback score. Missing ${esc(res.confidence.missing_inputs.join(', '))}.</div>` : ''}
         <div style="color:#888">${esc(ev.region?.label || '')}</div>
         <div style="color:#888;font-family:monospace">${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</div>
       </details>

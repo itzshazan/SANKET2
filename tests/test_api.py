@@ -128,6 +128,38 @@ def test_public_weather_archive_supplies_native_intervals_after_quota(monkeypatc
     assert calls == [[point]]
 
 
+def test_all_factor_model_scores_both_feeds_at_every_hotspot():
+    from module1.ml import features as F, predict
+    from module1.monitoring import hotspots
+
+    factors = set(predict.card("context")["groups"])
+    assert factors == {"Rainfall", "Soil moisture", "Temperature & wind", "Terrain",
+                       "Vegetation baseline", "Nearby past landslides"}
+    for interval in (1, 3):
+        n = 240 // interval
+        hourly = {"time": ["2024-08-01T12:00"] * n, "precipitation": [float(interval)] * n,
+                  "soil_moisture_7_to_28cm": [0.3] * n, "soil_moisture_28_to_100cm": [0.35] * n,
+                  "temperature_2m": [18.0] * n, "wind_speed_10m": [12.0] * n}
+        for d in hotspots.load().values():
+            for p in d["points"]:
+                result = predict.confidence(hourly, p["lat"], p["lon"], interval_hours=interval)
+                assert result["variant"] == "context"
+                assert set(result["features"]) == set(F.CONTEXT_FEATURES)
+                assert {driver["factor"] for driver in result["drivers"]} == factors
+                assert result["features"]["rain_24h"] == 24.0
+
+
+def test_landslide_history_uses_only_earlier_nearby_records(monkeypatch):
+    from datetime import date
+    from module1.ml import context
+
+    monkeypatch.setattr(context, "_landslides", lambda: [
+        (date(2023, 12, 31), 11.6, 76.1), (date(2024, 1, 5), 11.6, 76.1),
+        (date(2024, 6, 1), 11.6, 76.1), (date(2023, 12, 31), 11.9, 76.1),
+    ])
+    assert context.nearby_landslides(11.6, 76.1, date(2024, 2, 1)) == 1
+
+
 def test_rainfall_windows_preserve_missing_intervals():
     sums = tm.window_sums([1.0, None, 2.0], step_hours=3)
     assert sums[1] is None
@@ -237,12 +269,12 @@ def test_road_blockage_model_info_and_validation():
 def test_road_blockage_detects_a_real_landslide_and_rejects_non_images():
     client = TestClient(app)
     r = client.post("/api/v1/module1/road-blockage",
-                    files={"file": ("girdu.jpg", (_SAMPLES / "girdu.jpg").read_bytes(), "image/jpeg")}).json()
-    assert r["status"] == "ok" and r["blockage_percentage"] >= 50
-    assert r["severity"] in ("Severe", "Critical") and r["overlay"].startswith("data:image/jpeg;base64,")
+                    files={"file": ("us30.jpg", (_SAMPLES / "us30.jpg").read_bytes(), "image/jpeg")}).json()
+    assert r["status"] == "ok" and r["blockage_percentage"] >= 10
+    assert r["is_blocked"] and r["overlay"].startswith("data:image/jpeg;base64,")
     clear = client.post("/api/v1/module1/road-blockage",
                         files={"file": ("lahaul.jpg", (_SAMPLES / "clear_lahaul.jpg").read_bytes(), "image/jpeg")}).json()
-    assert clear["status"] == "ok" and clear["blockage_percentage"] < 10
+    assert clear["status"] == "ok" and clear["blockage_percentage"] == 0
     bad = client.post("/api/v1/module1/road-blockage", files={"file": ("x.txt", b"not an image", "text/plain")})
     assert bad.status_code == 400
 

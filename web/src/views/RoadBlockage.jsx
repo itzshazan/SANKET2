@@ -16,7 +16,7 @@ const CAUSE_LABEL = {
 };
 const SAMPLE_BASE = `${import.meta.env.BASE_URL || '/'}module3-samples/`;
 const SAMPLES = ['girdu', 'kentucky', 'zenia', 'mallorca', 'us30', 'clear_lahaul', 'clear_nh7', 'clear_nelliampathy'];
-const OUTCOME = { pass: ['✓ correct', 'var(--hazard-normal)'], fail: ['✗ wrong', 'var(--hazard-danger)'], no_road: ['no road seen', 'var(--text-dim)'], error: ['error', 'var(--hazard-danger)'] };
+const OUTCOME = { pass: ['✓ correct', 'var(--hazard-normal)'], fail: ['✗ wrong', 'var(--hazard-danger)'], no_road: ['inconclusive', 'var(--text-dim)'], error: ['error', 'var(--hazard-danger)'] };
 
 export default function RoadBlockage() {
   const [file, setFile] = useState(null);
@@ -62,8 +62,8 @@ export default function RoadBlockage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-        Take the photo on the road, looking along it. The model marks the road and anything covering it, then measures how
-        much of the road's width is blocked at the worst point. Confirm on the ground before acting.
+        From a safe position, take a photo facing along the road with both edges visible. The model estimates the blocked
+        share of the visible road width. Confirm on the ground before acting.
       </div>
 
       <div className="grid stack-sm" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
@@ -106,12 +106,12 @@ export default function RoadBlockage() {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="card-title">Result</div>
           {!result && !busy && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Choose a photo and press “Check blockage”.</div>}
-          {busy && <div style={{ fontSize: 13 }}>Checking… (about 2–5 seconds)</div>}
+          {busy && <div style={{ fontSize: 13 }}>Checking the visible road and obstacles…</div>}
           {result?.error && <div style={{ fontSize: 13, color: 'var(--hazard-danger)' }}>{result.error}</div>}
           {result?.status === 'unavailable' && <div style={{ fontSize: 13, color: 'var(--hazard-danger)' }}>Model unavailable: {result.reason}</div>}
           {result?.status === 'no_road' && (
             <div style={{ fontSize: 13 }}>
-              <b>No road surface recognised.</b> {result.reason}
+              <b>Inconclusive.</b> {result.reason}
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
                 Seen in the photo: {(result.scene || []).map((s) => `${s.class} ${Math.round(s.share * 100)}%`).join(', ')}
               </div>
@@ -121,7 +121,7 @@ export default function RoadBlockage() {
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
                 <span style={{ fontSize: 44, fontWeight: 900, fontFamily: 'var(--font-mono)', color: sevColor }}>{Math.round(pct)}%</span>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>of the road width blocked</span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>estimated road width blocked</span>
                 <span style={{ marginLeft: 'auto', fontWeight: 800, fontSize: 12, padding: '3px 10px', borderRadius: 4, color: '#fff', background: sevColor }}>
                   {result.severity.toUpperCase()}
                 </span>
@@ -176,9 +176,9 @@ export default function RoadBlockage() {
             {val && (
               <>
                 <div style={{ fontWeight: 700, marginTop: 12 }}>
-                  Checked on {vs.blocked_total + vs.clear_total} real photos: {vs.blocked_detected} of {vs.blocked_total} blocked roads detected,
-                  {' '}{vs.clear_correct} of {vs.clear_total - vs.clear_no_road} clear roads correct
-                  {vs.clear_no_road + vs.blocked_no_road ? `, ${vs.clear_no_road + vs.blocked_no_road} photos where no road was recognised` : ''}.
+                  On {vs.blocked_total + vs.clear_total} sample photos, the model detected {vs.blocked_detected} of {vs.blocked_total} blocked roads
+                  and correctly identified {vs.clear_correct} of {vs.clear_total} clear roads.
+                  {vs.clear_no_road + vs.blocked_no_road ? ` Inconclusive on ${vs.clear_no_road + vs.blocked_no_road} photos.` : ''}
                 </div>
                 <div className="table-scroll"><table className="data-table" style={{ width: '100%', fontSize: 11.5, marginTop: 6 }}>
                   <thead><tr><th>Photo</th><th>Actually</th><th>Model</th><th /><th>Credit</th></tr></thead>
@@ -202,8 +202,7 @@ export default function RoadBlockage() {
                   </tbody>
                 </table></div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
-                  Rule: a road counts as blocked at ≥ 10% of its width. Known weak spots: slides that push in from the side of the road,
-                  and gravel roads (sometimes read as soil). Photos from Wikimedia Commons; re-run with <code>python -m module3.validate</code>.
+                  The sample check uses blocked or clear labels. The estimated width percentages require on-site measurements to verify.
                 </div>
               </>
             )}

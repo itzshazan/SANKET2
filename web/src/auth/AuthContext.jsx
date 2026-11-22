@@ -35,7 +35,8 @@ async function fetchProfile() {
 }
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({ ready: false, configured: false, session: null, profile: null, error: null });
+  const [state, setState] = useState({ ready: false, configured: false, unreachable: false, session: null, profile: null, error: null });
+  const [attempt, setAttempt] = useState(0);         // bumped by retry() after the server did not answer
   const clientRef = useRef(null);
 
   // One /me request per sign-in: Supabase fires several events for one sign-in (SIGNED_IN, INITIAL_SESSION)
@@ -72,10 +73,16 @@ export function AuthProvider({ children }) {
       });
       sub = data.subscription;
     }).catch(() => {
-      if (alive) setState({ ready: true, configured: false, session: null, profile: null, error: 'The SANKET server is not reachable' });
+      // apiClient already waited up to 3 minutes for a sleeping server: it is really not answering
+      if (alive) setState({ ready: true, configured: false, unreachable: true, session: null, profile: null, error: 'The SANKET server is not answering' });
     });
     return () => { alive = false; sub?.unsubscribe(); };
-  }, [profileFor]);
+  }, [profileFor, attempt]);
+
+  const retry = useCallback(() => {
+    setState({ ready: false, configured: false, unreachable: false, session: null, profile: null, error: null });
+    setAttempt((a) => a + 1);
+  }, []);
 
   // Activity log "signed in": once per session, however many screens report it.
   const recordedFor = useRef(null);
@@ -111,8 +118,8 @@ export function AuthProvider({ children }) {
     ...state,
     client: clientRef.current,
     role: state.profile?.status === 'active' ? state.profile.role : null,
-    completeSignIn, refreshProfile, recordSignIn, signOut,
-  }), [state, completeSignIn, refreshProfile, recordSignIn, signOut]);
+    completeSignIn, refreshProfile, recordSignIn, signOut, retry,
+  }), [state, completeSignIn, refreshProfile, recordSignIn, signOut, retry]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

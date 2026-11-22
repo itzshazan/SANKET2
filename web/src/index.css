@@ -1045,3 +1045,16 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 /* Maps and the 3D globe keep their internal layers (Leaflet uses z-index 400-1000) inside their own box,
    so menus, drawers and dropdowns always draw on top of them. */
 .leaflet-container, .tactical-globe-wrapper { isolation: isolate; }
+
+/* Waiting for a sleeping server (free hosting pauses the API after ~15 idle minutes) */
+.wake-note { max-width: 380px; display: flex; flex-direction: column; gap: 6px; text-align: center; font-family: 'Inter', system-ui, sans-serif; }
+.wake-note b { font-size: 15px; font-weight: 600; color: #013126; font-variant-numeric: tabular-nums; }
+.wake-note span { font-size: 13px; line-height: 1.55; color: #64726f; }
+.signing-in { padding: 24px; }
+.wake-banner { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 3000; display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: 999px; background: #013126; color: #e9f7f0; font: 500 13px/1.2 'Inter', system-ui, sans-serif;
+  box-shadow: 0 12px 30px rgba(1, 49, 38, .35); font-variant-numeric: tabular-nums; max-width: calc(100vw - 24px); }
+.wake-banner i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(88, 237, 162, .3); border-top-color: #58eda2; animation: signing-spin .8s linear infinite; flex: none; }
+.wake-banner.failed { background: #8a1c12; color: #fff; }
+.wake-banner button { border: 0; border-radius: 999px; padding: 6px 12px; background: #fff; color: #8a1c12; font: 600 12.5px 'Inter', system-ui, sans-serif; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .wake-banner i { animation: none; } }

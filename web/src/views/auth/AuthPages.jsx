@@ -5,6 +5,7 @@ import { module1Api } from '../../services/module1Api.js';
 import { useLiveDistricts } from '../../data/useLiveDistricts.js';
 import { REGIONS, SEVERITY } from '../../data/catalog.js';
 import Brand from '../../components/Brand.jsx';
+import { WakeNote } from '../../components/ServerWake.jsx';
 import { useLocation, useSearchParams } from 'react-router';
 import { useGo } from '../../routing.jsx';
 import { useAuthMotion } from './useAuthMotion.js';
@@ -555,6 +556,20 @@ function NotConfigured({ goHome, error }) {
   );
 }
 
+// The server did not answer, even after waiting for a sleeping server to start (services/apiClient.js).
+function ServerUnreachable({ goHome, onRetry }) {
+  return (
+    <Shell goHome={goHome}>
+      <Head kicker="Connection" title="The server is not answering"
+        sub="It did not start within 3 minutes. Check your internet connection, then try again." />
+      <div className="au-stack au-rise d1">
+        <button className="au-btn" onClick={onRetry}>Try again<Icon name="arrow" size={18} className="arr" /></button>
+        <button className="au-btn ghost" onClick={goHome}><Icon name="back" size={18} />Back to home</button>
+      </div>
+    </Shell>
+  );
+}
+
 const SCREENS = { login: Login, signup: Signup, pending: Pending };
 
 // Redirects (already signed in, approved, signed out) are made by the route guards in routing.jsx.
@@ -563,7 +578,8 @@ export default function AuthPages({ mode }) {
   const navigate = useGo();
   const goHome = () => navigate('/');
   const Screen = useMemo(() => SCREENS[mode] || Login, [mode]);
-  if (!auth?.ready) return <div className="au-loading"><Brand /></div>;
+  if (!auth?.ready) return <div className="au-loading" role="status"><Brand /><WakeNote /></div>;
+  if (auth.unreachable) return <ServerUnreachable goHome={goHome} onRetry={auth.retry} />;
   if (!auth.configured) return <NotConfigured goHome={goHome} error={auth.error} />;
   return <Screen navigate={navigate} goHome={goHome} />;
 }

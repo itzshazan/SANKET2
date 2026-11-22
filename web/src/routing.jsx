@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Link, Navigate, Outlet, isRouteErrorResponse, useLocation, useNavigate, useRouteError, useSearchParams } from 'react-router';
 import { useAuth } from './auth/AuthContext.jsx';
 import Brand from './components/Brand.jsx';
+import { WakeNote } from './components/ServerWake.jsx';
 import { DEFAULT_ROUTE, getRoute, landingPath, pathFor, safeNext } from './routes.js';
 
 // Route guards and the small full-page screens around them. Every redirect decision lives here, as
@@ -23,7 +24,7 @@ export function Redirect({ to }) {
 }
 
 export function SigningIn({ text = 'Checking your sign-in…' }) {
-  return <div className="signing-in" role="status"><Brand /><span><i />{text}</span></div>;
+  return <div className="signing-in" role="status"><Brand /><span><i />{text}</span><WakeNote /></div>;
 }
 
 const loginWithNext = (loc) => `/login?next=${encodeURIComponent(loc.pathname + loc.search)}`;

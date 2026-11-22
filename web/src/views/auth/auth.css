@@ -13,7 +13,7 @@
 }
 .au button { font-family: inherit; cursor: pointer; }
 .au-serif { font-family: 'Newsreader', Georgia, serif; font-weight: 450; font-variation-settings: 'opsz' 72; letter-spacing: -0.035em; }
-.au-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f7f4ef; }
+.au-loading { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; background: #f7f4ef; }
 .au-loading svg { animation: auBreath 1.4s ease-in-out infinite; }
 
 /* ---------- form side ---------- */

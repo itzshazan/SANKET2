@@ -89,6 +89,20 @@ If you already have an Open-Meteo subscription,
 set `OPEN_METEO_API_KEY` in Render to use the dedicated forecast endpoint. During an outage the site
 shows the last real readings as stale when available.
 
+**Keep the API awake (free plan).** Render stops a free instance after 15 minutes without requests, and starting it
+again takes about a minute. The website waits through this by itself (it shows "Starting the server · 23 s" and then
+continues, no reload needed), but visitors still wait that minute. To avoid the wait, let a free uptime monitor call the
+API every few minutes:
+
+1. Sign up at https://uptimerobot.com (free) → **New monitor** → type **HTTP(s)**.
+2. URL `https://<your-service>.onrender.com/api/v1/module1/health`, interval **5 minutes** (anything under 15 works).
+3. Save. It also emails you if the API goes down. (https://cron-job.org works the same way.)
+
+Render's free plan has 750 instance hours a month per workspace; one service awake all month uses about 744, so keep
+only this service always on. Deploys and Render maintenance still restart it; the site waits through those too. For a
+demo or judging day, the paid **Starter** instance never sleeps. Supabase's free plan pauses a project after a week with
+no activity, so sign in at least once a week.
+
 **Field reports and incidents** are stored in a SQLite file. Render's disk is wiped on every deploy and restart, so
 on a plain instance they are lost. To keep them (paid instances): service → **Disks** → **Add disk**, mount path
 `/var/data`, 1 GB, and add the environment variable `SANKET_DB_PATH=/var/data/sanket.db`.
@@ -125,7 +139,8 @@ on a plain instance they are lost. To keep them (paid instances): service → **
 - `https://<your-project>.vercel.app` loads the home page; `https://<your-project>.vercel.app/monitor` opened directly
   asks you to sign in, then shows Live Monitor (proves the page links work).
 - Sign in with email and with Google; the Admin page shows **System health**.
-- On the free plan, if the first page says the server is not reachable, the API is waking up: wait a minute and reload.
+- On the free plan, after a quiet period the site shows "Starting the server · N s" for about a minute and then
+  continues by itself. Only if the server does not answer within 3 minutes does it say so, with a **Try again** button.
 
 ## Later
 

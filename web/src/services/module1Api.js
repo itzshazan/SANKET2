@@ -3,7 +3,7 @@
 // views show "data unavailable". Real-data fallbacks (last real reading, flagged stale) are
 // handled by the backend, which marks every value live / stale / unavailable.
 
-import apiClient from './apiClient.js';
+import apiClient, { wakeServer } from './apiClient.js';
 import { getAccessToken } from '../auth/token.js';
 
 const API = '/api/v1/module1';
@@ -67,7 +67,7 @@ export const module1Api = {
   // Module 3 (experimental): road blockage from a photo
   getRoadBlockageModel: () => safe(apiClient.get(`${API}/road-blockage/model`, { timeoutMs: 60000 })),
   // multipart upload; resolves to the result, or { error } with the server's reason
-  analyzeRoadBlockage: async (file) => {
+  analyzeRoadBlockage: async (file, retried = false) => {
     const form = new FormData();
     form.append('file', file, file.name || 'photo.jpg');
     const ctrl = new AbortController();
@@ -80,7 +80,13 @@ export const module1Api = {
       const body = await res.json().catch(() => ({}));
       return res.ok ? body : { error: body?.detail || `HTTP ${res.status}` };
     } catch (err) {
-      return { error: err?.name === 'AbortError' ? 'Timed out' : 'Backend unreachable' };
+      if (err?.name === 'AbortError') return { error: 'Timed out' };
+      // no answer at all: the server may be asleep; wait for it and send the photo once more
+      if (!retried && navigator.onLine !== false) {
+        const { up, wasDown } = await wakeServer();
+        if (up && wasDown) return module1Api.analyzeRoadBlockage(file, true);
+      }
+      return { error: 'Backend unreachable' };
     } finally {
       clearTimeout(t);
     }

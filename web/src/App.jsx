@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet, ScrollRestoration, useLocation }
 import { RouterProvider } from 'react-router/dom';
 import { useAuth } from './auth/AuthContext.jsx';
 import AppShell from './AppShell.jsx';
+import { WakeBanner } from './components/ServerWake.jsx';
 import { ALIASES, APP_ROUTES, landingPath, pathFor, resolveRoute, routeForPath } from './routes.js';
 import {
   AuthCallback, NotFound, PublicOnly, Redirect, RequireActive, RequireSession, RouteError, useGo,
@@ -51,7 +52,7 @@ function Root() {
   if (/[?&](code|error)=/.test(loc.search) && loc.pathname !== '/auth/callback') {
     return <Navigate to={`/auth/callback${loc.search}`} replace />;
   }
-  return <><Outlet /><ScrollRestoration /></>;
+  return <><Outlet /><WakeBanner /><ScrollRestoration /></>;
 }
 
 const router = createBrowserRouter([{
